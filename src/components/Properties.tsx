@@ -14,6 +14,7 @@ import type { Property, PropertyCategory, PropertyTransaction } from "../lib/typ
 import { useSiteData } from "../lib/data";
 import { priceLabel } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
+import { smallImage } from "../lib/images";
 
 const FILTERS: { label: string; value: PropertyCategory | "todos" }[] = [
   { label: "Todos", value: "todos" },
@@ -66,14 +67,16 @@ function PropertyCard({
       >
         <motion.div style={{ y }} className="absolute inset-x-0 -top-[10%] h-[120%]">
           <img
-            src={property.image}
+            src={smallImage(property.image)}
+            decoding="async"
             alt={property.title}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
           />
           {second && (
             <img
-              src={second}
+              src={smallImage(second)}
+              decoding="async"
               alt=""
               aria-hidden="true"
               loading="lazy"

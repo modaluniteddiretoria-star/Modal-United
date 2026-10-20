@@ -13,6 +13,7 @@ import type { Booking } from "../lib/types";
 import { useSiteData } from "../lib/data";
 import { formatDisplayDate } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
+import { smallImage } from "../lib/images";
 
 export function MyBookings({
   bookings,
@@ -81,7 +82,7 @@ export function MyBookings({
                   >
                     <div className="flex items-center gap-4">
                       <img
-                        src={p.image}
+                        src={smallImage(p.image)}
                         alt={p.title}
                         className="h-20 w-20 shrink-0 rounded-2xl object-cover sm:h-24 sm:w-24"
                       />

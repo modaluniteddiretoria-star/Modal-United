@@ -15,6 +15,7 @@ import {
 import { DEFAULT_PROPERTIES, useSiteData } from "../lib/data";
 import { creciLabel, instagramUrl, priceLabel, scrollToId } from "../lib/helpers";
 import { GoldButton } from "./Shared";
+import { smallImage } from "../lib/images";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -234,7 +235,7 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
             <div className="relative overflow-hidden rounded-[1.8rem] border border-cream-100/15 bg-ink-900/80 shadow-2xl backdrop-blur">
               <div className="relative h-60 overflow-hidden">
                 <img
-                  src={featured.image}
+                  src={smallImage(featured.image)}
                   alt={featured.title}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { smallImage } from "../lib/images";
 
 const SWIPE_PX = 60;
 
@@ -126,7 +127,7 @@ export function PropertyGallery({
               aria-label={`Ver foto ${i + 1}`}
               aria-current={i === index}
             >
-              <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+              <img src={smallImage(src)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
             </button>
           ))}
         </div>

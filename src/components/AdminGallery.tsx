@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Star, X } from "lucide-react";
+import { smallImage } from "../lib/images";
 
 const MAX_PHOTOS = 20;
 
@@ -82,7 +83,7 @@ export function AdminGallery({
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {gallery.map((url, i) => (
             <li key={`${url}-${i}`} className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-cream-100/10">
-              <img src={url} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
+              <img src={smallImage(url)} alt={`Foto ${i + 1}`} className="h-full w-full object-cover" />
               <span className="absolute left-1.5 top-1.5 rounded-md bg-ink-950/70 px-1.5 text-[10px] font-bold text-cream-100">
                 {i + 1}
               </span>

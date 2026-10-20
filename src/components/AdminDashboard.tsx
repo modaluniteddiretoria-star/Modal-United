@@ -13,12 +13,14 @@ import {
 import type { Property } from "../lib/types";
 import { saveSiteContent, saveSiteData, useSiteData } from "../lib/data";
 import { AdminContent } from "./AdminContent";
+import { PROPERTY_FOLDER, SMALL_SUFFIX, compressImage, extensionFor, smallImage } from "../lib/images";
 import { supabase } from "../lib/supabase";
 import { AdminBookings } from "./AdminBookings";
 import { AdminChat } from "./AdminChat";
 import { AdminGallery } from "./AdminGallery";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // limite do bucket (após compressão)
+const MAX_INPUT_BYTES = 20 * 1024 * 1024; // arquivo original escolhido
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const TABS = [
@@ -149,28 +151,51 @@ export function AdminDashboard({
   };
 
   // Envia uma imagem ao Storage e devolve a URL pública (ou null em caso de erro)
-  const uploadImage = async (file: File, folder: string): Promise<string | null> => {
+  // Comprime no navegador (WebP) e envia ao Storage; devolve a URL pública (ou null em caso de erro).
+  // Fotos de imóveis ganham também uma versão pequena (<uuid>-sm) para cards e miniaturas.
+  const uploadImage = async (file: File, kind: "profile" | "property"): Promise<string | null> => {
     if (!IMAGE_TYPES.includes(file.type)) {
       setSaveError("Use imagens JPG, PNG ou WebP.");
       return null;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setSaveError(`"${file.name}" passa de 5 MB.`);
+    if (file.size > MAX_INPUT_BYTES) {
+      setSaveError(`"${file.name}" passa de 20 MB.`);
       return null;
     }
     setUploading(true);
     setSaveError("");
-    const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage
-      .from("site-images")
-      .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
-    setUploading(false);
-    if (error) {
-      setSaveError("Falha ao enviar a imagem. Tente novamente.");
+    try {
+      const full = await compressImage(file, kind === "profile" ? 800 : 1920);
+      if (full.size > MAX_IMAGE_BYTES) {
+        setSaveError(`"${file.name}" ficou grande demais mesmo comprimida.`);
+        return null;
+      }
+      const ext = extensionFor(full);
+      const id = crypto.randomUUID();
+      const folder = kind === "profile" ? "profile" : PROPERTY_FOLDER;
+      const bucket = supabase.storage.from("site-images");
+      const opts = { cacheControl: "31536000" };
+      const path = `${folder}/${id}.${ext}`;
+      const { error } = await bucket.upload(path, full, { ...opts, contentType: full.type });
+      if (error) throw error;
+      if (kind === "property") {
+        // A versão pequena usa o mesmo formato da grande (o site troca só o sufixo)
+        const small = await compressImage(file, 800, 0.78);
+        const smallBlob = extensionFor(small) === ext ? small : full;
+        const { error: smallError } = await bucket.upload(`${folder}/${id}${SMALL_SUFFIX}.${ext}`, smallBlob, {
+          ...opts,
+          contentType: smallBlob.type,
+        });
+        if (smallError) throw smallError;
+      }
+      return bucket.getPublicUrl(path).data.publicUrl;
+    } catch (err) {
+      console.error(err);
+      setSaveError("Falha ao processar ou enviar a imagem. Tente novamente.");
       return null;
+    } finally {
+      setUploading(false);
     }
-    return supabase.storage.from("site-images").getPublicUrl(path).data.publicUrl;
   };
 
   const handlePhotoUpload = async (file: File | null, target: "profile" | "property", id?: string) => {
@@ -539,7 +564,7 @@ export function AdminDashboard({
                         >
                           <div className="flex flex-col gap-4 md:flex-row">
                             <div className="h-28 w-full overflow-hidden rounded-2xl border border-cream-100/10 bg-ink-900 md:w-44">
-                              <img src={property.image} alt={property.title} className="h-full w-full object-cover" />
+                              <img src={smallImage(property.image)} alt={property.title} className="h-full w-full object-cover" />
                             </div>
 
                             <div className="grid flex-1 gap-3 md:grid-cols-2">

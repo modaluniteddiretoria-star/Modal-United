@@ -24,6 +24,7 @@ import {
   nextDays,
   weekdayShort,
 } from "../lib/helpers";
+import { smallImage } from "../lib/images";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -179,7 +180,7 @@ export function BookingModal({
             {/* Header */}
             <div className="flex items-center gap-4 border-b border-cream-100/10 p-5">
               <img
-                src={property.image}
+                src={smallImage(property.image)}
                 alt=""
                 className="h-14 w-14 shrink-0 rounded-2xl object-cover"
               />
@@ -443,7 +444,7 @@ export function BookingModal({
 
                     <div className="mt-6 w-full rounded-2xl border border-cream-100/10 bg-ink-800/70 p-4 text-left">
                       <div className="flex items-center gap-3">
-                        <img src={property.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
+                        <img src={smallImage(property.image)} alt="" className="h-16 w-16 rounded-xl object-cover" />
                         <div className="min-w-0">
                           <p className="truncate font-display text-base text-cream-50">{property.title}</p>
                           <p className="flex items-center gap-1 text-xs capitalize text-cream-300">
