@@ -75,10 +75,10 @@ export function Navbar({
               <Building2 className="h-5 w-5" />
             </span>
             <span className="leading-tight">
-              <span className="block font-display text-lg font-semibold text-cream-50">
+              <span className="block whitespace-nowrap font-brand text-[13px] uppercase tracking-[0.14em] text-cream-50 sm:text-[15px] sm:tracking-[0.18em]">
                 {AGENT.brand}
               </span>
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.3em] text-gold-400">
+              <span className="block whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.3em] text-gold-400">
                 Consultoria em Imóveis
               </span>
             </span>

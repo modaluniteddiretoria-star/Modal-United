@@ -48,7 +48,7 @@ export function SectionHeading({
         <span className="h-px w-8 bg-gold-500/70" />
         {eyebrow}
       </p>
-      <h2 className="font-display text-3xl leading-tight text-cream-50 sm:text-4xl lg:text-5xl">
+      <h2 className="font-brand text-2xl leading-snug text-cream-50 sm:text-3xl lg:text-[2.6rem] lg:leading-[1.2]">
         {title}
       </h2>
       {description && (

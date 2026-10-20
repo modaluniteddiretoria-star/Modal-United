@@ -163,7 +163,7 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
               <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-gold-400" />
               Agenda de visitas aberta
             </p>
-            <h1 className="font-display text-[2.6rem] font-medium leading-[1.05] text-cream-50 sm:text-6xl lg:text-[4.4rem]">
+            <h1 className="font-brand text-[1.85rem] leading-[1.18] text-cream-50 sm:text-5xl lg:text-[3.3rem]">
               O endereço certo para a sua{" "}
               <span className="relative inline-block text-gold-300">
                 <em className="not-italic">próxima história</em>

@@ -43,7 +43,7 @@ export function CtaBanner() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="mt-4 font-display text-3xl leading-tight text-cream-50 sm:text-5xl"
+          className="mt-4 font-brand text-2xl leading-snug text-cream-50 sm:text-4xl sm:leading-[1.2]"
         >
           Pronto para conhecer seu próximo lar{" "}
           <span className="text-gold-300">pessoalmente?</span>

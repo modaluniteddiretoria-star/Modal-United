@@ -22,7 +22,7 @@ export function Footer() {
               <Building2 className="h-5 w-5" />
             </span>
             <div className="leading-tight">
-              <p className="font-display text-lg font-semibold text-cream-50">{AGENT.brand}</p>
+              <p className="font-brand text-[15px] uppercase tracking-[0.18em] text-cream-50">{AGENT.brand}</p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-gold-400">
                 Consultoria em Imóveis
               </p>

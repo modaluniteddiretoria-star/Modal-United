@@ -3,6 +3,8 @@
 @theme {
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  /* Estilo do logo MODAL: geométrica e larga */
+  --font-brand: "Michroma", "Manrope", ui-sans-serif, system-ui, sans-serif;
 
   --color-ink-950: #05070a;
   --color-ink-900: #090d13;

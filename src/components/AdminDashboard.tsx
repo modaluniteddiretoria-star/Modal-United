@@ -269,7 +269,7 @@ export function AdminDashboard({
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gold-400">
                     Painel administrativo
                   </p>
-                  <h3 className="font-display text-xl text-cream-50">Modal United</h3>
+                  <h3 className="font-brand text-base uppercase tracking-[0.18em] text-cream-50">Modal United</h3>
                 </div>
               </div>
 
