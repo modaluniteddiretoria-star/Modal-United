@@ -66,7 +66,12 @@ export function AdminDashboard({
   // Presença: enquanto o painel está aberto, o corretor aparece online no chat do site
   useEffect(() => {
     if (!open || !authenticated) return;
-    const beat = () => void supabase.rpc("agent_heartbeat");
+    // O builder do supabase-js só executa ao ser aguardado (then/await)
+    const beat = () => {
+      void supabase.rpc("agent_heartbeat").then(({ error }) => {
+        if (error) console.warn("Falha ao marcar presença no chat", error.message);
+      });
+    };
     const first = window.setTimeout(beat, 0);
     const timer = window.setInterval(beat, HEARTBEAT_MS);
     return () => {
