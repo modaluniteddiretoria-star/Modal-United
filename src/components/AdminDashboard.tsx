@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
   ImagePlus,
-  PencilLine,
+  LogOut,
   Plus,
   Settings2,
   Trash2,
@@ -11,20 +11,17 @@ import {
   X,
 } from "lucide-react";
 import type { Property } from "../lib/types";
-import {
-  AGENT,
-  PROPERTIES,
-  getAdminToken,
-  setAdminToken,
-  resetRemoteSiteData,
-  resetSiteData,
-  saveRemoteSiteData,
-  saveSiteData,
-} from "../lib/data";
+import { saveSiteData, useSiteData } from "../lib/data";
+import { supabase } from "../lib/supabase";
+import { AdminBookings } from "./AdminBookings";
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const TABS = [
   { id: "perfil", label: "Perfil" },
   { id: "imoveis", label: "Imóveis" },
+  { id: "agendamentos", label: "Agendamentos" },
 ] as const;
 
 function makeId(prefix: string) {
@@ -38,23 +35,46 @@ export function AdminDashboard({
   open: boolean;
   onClose: () => void;
 }) {
+  const { agent: AGENT, properties: PROPERTIES } = useSiteData();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("perfil");
   const [profile, setProfile] = useState(() => ({ ...AGENT }));
   const [properties, setProperties] = useState<Property[]>(() => structuredClone(PROPERTIES));
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
-  const [authenticated, setAuthenticated] = useState(() => Boolean(getAdminToken()));
+  const [authenticated, setAuthenticated] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Recarrega os dados atuais sempre que o painel é aberto
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
     if (open) {
-      setAuthenticated(Boolean(getAdminToken()));
       setProfile({ ...AGENT });
       setProperties(structuredClone(PROPERTIES));
+      setSaveError("");
     }
   }
+
+  // Sessão do Supabase: só libera o painel para usuários em public.admins
+  useEffect(() => {
+    const check = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        setAuthenticated(false);
+        return;
+      }
+      const { data: isAdmin } = await supabase.rpc("is_admin");
+      setAuthenticated(Boolean(isAdmin));
+    };
+    void check();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      void check();
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
@@ -99,68 +119,68 @@ export function AdminDashboard({
     setProperties((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handlePhotoUpload = (file: File | null, target: "profile" | "property", id?: string) => {
+  const handlePhotoUpload = async (file: File | null, target: "profile" | "property", id?: string) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = String(reader.result ?? "");
-      if (target === "profile") {
-        setProfile((prev) => ({ ...prev, photo: url }));
-      }
-      if (target === "property" && id) {
-        updateProperty(id, { image: url });
-      }
-    };
-    reader.readAsDataURL(file);
+    if (!IMAGE_TYPES.includes(file.type)) {
+      setSaveError("Use uma imagem JPG, PNG ou WebP.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setSaveError("A imagem deve ter no máximo 5 MB.");
+      return;
+    }
+    setUploading(true);
+    setSaveError("");
+    const ext = file.type.split("/")[1].replace("jpeg", "jpg");
+    const path = `${target}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("site-images")
+      .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
+    setUploading(false);
+    if (error) {
+      setSaveError("Falha ao enviar a imagem. Tente novamente.");
+      return;
+    }
+    const url = supabase.storage.from("site-images").getPublicUrl(path).data.publicUrl;
+    if (target === "profile") setProfile((prev) => ({ ...prev, photo: url }));
+    if (target === "property" && id) updateProperty(id, { image: url });
   };
 
   const saveChanges = async () => {
+    setSaving(true);
+    setSaveError("");
     try {
-      const result = await saveRemoteSiteData(profile, properties);
-      setProfile({ ...result.agent });
-      setProperties(structuredClone(result.properties));
+      await saveSiteData(profile, properties);
       onClose();
-    } catch {
-      const fallback = saveSiteData(profile, properties);
-      setProfile({ ...fallback.agent });
-      setProperties(structuredClone(fallback.properties));
-      onClose();
+    } catch (err) {
+      console.error(err);
+      setSaveError("Não foi possível salvar. Confira os campos (ex.: WhatsApp só com números) e tente de novo.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const resetChanges = async () => {
-    try {
-      const restored = await resetRemoteSiteData();
-      setProfile({ ...restored.agent });
-      setProperties(structuredClone(restored.properties));
-    } catch {
-      const restored = resetSiteData();
-      setProfile({ ...restored.agent });
-      setProperties(structuredClone(restored.properties));
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setAuthenticated(false);
+    onClose();
   };
 
   const handleLogin = async () => {
-    try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Senha inválida");
-      }
-
-      const { token } = (await response.json()) as { token?: string };
-      if (!token) throw new Error("Token ausente");
-      setAdminToken(token);
-      setPassword("");
-      setAuthenticated(true);
-      setAuthError("");
-    } catch {
-      setAuthError("Senha incorreta ou servidor indisponível.");
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setPassword("");
+    if (error) {
+      setAuthError("E-mail ou senha incorretos.");
+      return;
     }
+    const { data: isAdmin } = await supabase.rpc("is_admin");
+    if (!isAdmin) {
+      await supabase.auth.signOut();
+      setAuthError("Esta conta não tem acesso ao painel.");
+      return;
+    }
+    setAuthenticated(true);
   };
 
   if (!authenticated) {
@@ -185,16 +205,25 @@ export function AdminDashboard({
                 </span>
                 <h3 className="mt-4 font-display text-3xl text-cream-50">Painel admin</h3>
                 <p className="mt-2 text-sm text-cream-300">
-                  Entre com a senha para editar o site da Modal United.
+                  Entre com seu e-mail e senha para editar o site da Modal United.
                 </p>
               </div>
 
               <div className="mt-6 space-y-4">
                 <input
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="E-mail"
+                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3.5 text-sm text-cream-100 outline-none focus:border-gold-400/60"
+                />
+                <input
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Senha do painel"
+                  placeholder="Senha"
                   className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3.5 text-sm text-cream-100 outline-none focus:border-gold-400/60"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void handleLogin();
@@ -297,9 +326,9 @@ export function AdminDashboard({
                           Trocar foto
                           <input
                             type="file"
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp"
                             className="hidden"
-                            onChange={(e) => handlePhotoUpload(e.target.files?.[0] ?? null, "profile")}
+                            onChange={(e) => void handlePhotoUpload(e.target.files?.[0] ?? null, "profile")}
                           />
                         </label>
                         <input
@@ -396,6 +425,8 @@ export function AdminDashboard({
                     </div>
                   </div>
                 )}
+
+                {tab === "agendamentos" && <AdminBookings />}
 
                 {tab === "imoveis" && (
                   <div className="space-y-6">
@@ -497,9 +528,9 @@ export function AdminDashboard({
                               Subir foto
                               <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp"
                                 className="hidden"
-                                onChange={(e) => handlePhotoUpload(e.target.files?.[0] ?? null, "property", property.id)}
+                                onChange={(e) => void handlePhotoUpload(e.target.files?.[0] ?? null, "property", property.id)}
                               />
                             </label>
                             <button
@@ -520,12 +551,18 @@ export function AdminDashboard({
 
             <div className="flex items-center justify-between border-t border-cream-100/10 bg-ink-950/60 px-5 py-4">
               <button
-                onClick={resetChanges}
+                onClick={() => void handleLogout()}
                 className="inline-flex items-center gap-2 rounded-full border border-cream-100/15 px-4 py-2.5 text-sm font-semibold text-cream-100 transition hover:border-gold-400/60 hover:text-gold-300"
               >
-                <PencilLine className="h-4 w-4" />
-                Resetar
+                <LogOut className="h-4 w-4" />
+                Sair
               </button>
+
+              {(saveError || uploading) && (
+                <p role="status" className={`flex-1 px-4 text-sm ${saveError ? "text-red-300" : "text-cream-300"}`}>
+                  {saveError || "Enviando imagem..."}
+                </p>
+              )}
 
               <div className="flex items-center gap-3">
                 <button
@@ -535,11 +572,12 @@ export function AdminDashboard({
                   Cancelar
                 </button>
                 <button
-                  onClick={saveChanges}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-5 py-2.5 text-sm font-bold text-ink-950 transition hover:bg-gold-400"
+                  onClick={() => void saveChanges()}
+                  disabled={saving || uploading}
+                  className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-5 py-2.5 text-sm font-bold text-ink-950 transition hover:bg-gold-400 disabled:cursor-wait disabled:opacity-60"
                 >
                   <Check className="h-4 w-4" />
-                  Salvar alterações
+                  {saving ? "Salvando..." : "Salvar alterações"}
                 </button>
               </div>
             </div>

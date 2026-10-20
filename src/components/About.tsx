@@ -1,14 +1,14 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { BadgeCheck, ShieldCheck, TrendingUp, Handshake } from "lucide-react";
-import { AGENT } from "../lib/data";
+import { useSiteData, type Agent } from "../lib/data";
 import { Reveal, SectionHeading } from "./Shared";
 
-const CREDENTIALS = [
+const credentials = (agent: Agent) => [
   {
     icon: BadgeCheck,
-    title: `Corretora certificada há ${AGENT.years} anos`,
-    text: `${AGENT.creci} · Pós-graduada em Negócios Imobiliários pela FGV.`,
+    title: `Corretora certificada há ${agent.years} anos`,
+    text: `${agent.creci} · Pós-graduada em Negócios Imobiliários pela FGV.`,
   },
   {
     icon: ShieldCheck,
@@ -28,6 +28,8 @@ const CREDENTIALS = [
 ];
 
 export function About() {
+  const { agent: AGENT } = useSiteData();
+  const CREDENTIALS = credentials(AGENT);
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,

@@ -1,4 +1,6 @@
+import { useSyncExternalStore } from "react";
 import type { Property } from "./types";
+import { supabase } from "./supabase";
 
 export const DEFAULT_AGENT = {
   brand: "Modal United",
@@ -168,176 +170,169 @@ export const DEFAULT_PROPERTIES: Property[] = [
   },
 ];
 
-export let AGENT = { ...DEFAULT_AGENT };
-export let PROPERTIES: Property[] = [...DEFAULT_PROPERTIES];
+export type Agent = typeof DEFAULT_AGENT;
 
-const SITE_STORAGE_KEY = "modal-united-site-config-v1";
-const ADMIN_TOKEN_KEY = "modal-united-admin-token";
-
-// Token emitido pelo servidor no login; fica só na sessão do navegador
-export function getAdminToken(): string | null {
-  try {
-    return window.sessionStorage.getItem(ADMIN_TOKEN_KEY);
-  } catch {
-    return null;
-  }
+export interface SiteData {
+  agent: Agent;
+  properties: Property[];
+  status: "loading" | "ready" | "error";
 }
 
-export function setAdminToken(token: string | null) {
-  try {
-    if (token) window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
-    else window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
-  } catch {
-    // armazenamento indisponível
-  }
+// ---------------------------------------------------------------------------
+// Store reativo (useSyncExternalStore): perfil e imóveis vindos do Supabase
+// ---------------------------------------------------------------------------
+let state: SiteData = {
+  agent: { ...DEFAULT_AGENT },
+  properties: [...DEFAULT_PROPERTIES],
+  status: "loading",
+};
+const listeners = new Set<() => void>();
+
+function setState(next: Partial<SiteData>) {
+  state = { ...state, ...next };
+  listeners.forEach((l) => l());
 }
 
-function adminHeaders(): HeadersInit {
-  const token = getAdminToken();
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function useSiteData(): SiteData {
+  return useSyncExternalStore(subscribe, () => state);
+}
+
+export function getSiteData(): SiteData {
+  return state;
+}
+
+// ---------------------------------------------------------------------------
+// Mapeamento banco <-> app
+// ---------------------------------------------------------------------------
+interface PropertyRow {
+  id: string;
+  title: string;
+  type_label: string;
+  category: Property["category"];
+  price: number;
+  condo: number | null;
+  location: string;
+  city: string;
+  beds: number;
+  baths: number;
+  area: number;
+  image: string;
+  badge: Property["badge"] | null;
+  description: string;
+  features: string[];
+  sort_order: number;
+}
+
+function fromRow(r: PropertyRow): Property {
   return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    id: r.id,
+    title: r.title,
+    typeLabel: r.type_label,
+    category: r.category,
+    price: Number(r.price),
+    condo: r.condo == null ? undefined : Number(r.condo),
+    location: r.location,
+    city: r.city,
+    beds: r.beds,
+    baths: r.baths,
+    area: r.area,
+    image: r.image,
+    badge: r.badge ?? undefined,
+    description: r.description,
+    features: r.features ?? [],
   };
 }
 
-function normalizeAgent(profile: Partial<typeof DEFAULT_AGENT> | undefined) {
-  return { ...DEFAULT_AGENT, ...profile };
+function toRow(p: Property, index: number): PropertyRow {
+  return {
+    id: p.id,
+    title: p.title.trim(),
+    type_label: p.typeLabel.trim(),
+    category: p.category,
+    price: p.price,
+    condo: p.condo ?? null,
+    location: p.location.trim(),
+    city: p.city.trim(),
+    beds: p.beds,
+    baths: p.baths,
+    area: p.area,
+    image: p.image.trim(),
+    badge: p.badge ?? null,
+    description: p.description.trim(),
+    features: p.features.map((f) => f.trim()).filter(Boolean),
+    sort_order: index,
+  };
 }
 
-function normalizeProperties(list: Property[] | undefined) {
-  if (!Array.isArray(list) || list.length === 0) return [...DEFAULT_PROPERTIES];
-  return list.map((property) => ({
-    ...property,
-    badge: property.badge ?? undefined,
-    condo: property.condo ?? undefined,
-  }));
+// ---------------------------------------------------------------------------
+// Leitura e escrita
+// ---------------------------------------------------------------------------
+export async function loadSiteData(): Promise<void> {
+  const [agentRes, propsRes] = await Promise.all([
+    supabase.from("agent_profile").select("*").eq("id", 1).maybeSingle(),
+    supabase.from("properties").select("*").order("sort_order").order("created_at"),
+  ]);
+
+  if (agentRes.error || propsRes.error) {
+    console.error("Falha ao carregar dados do site", agentRes.error ?? propsRes.error);
+    setState({ status: "error" });
+    return;
+  }
+
+  const row = agentRes.data as (Agent & { id: number; updated_at: string }) | null;
+  const agent: Agent = row
+    ? {
+        brand: row.brand,
+        name: row.name,
+        role: row.role,
+        creci: row.creci,
+        phone: row.phone,
+        whatsapp: row.whatsapp,
+        email: row.email,
+        instagram: row.instagram,
+        city: row.city,
+        photo: row.photo,
+        rating: Number(row.rating),
+        reviews: row.reviews,
+        years: row.years,
+        sold: row.sold,
+      }
+    : { ...DEFAULT_AGENT };
+
+  setState({
+    agent,
+    properties: (propsRes.data as PropertyRow[]).map(fromRow),
+    status: "ready",
+  });
 }
 
-export function loadSiteData() {
-  if (typeof window === "undefined") {
-    return { agent: { ...DEFAULT_AGENT }, properties: [...DEFAULT_PROPERTIES] };
+// Salva perfil e imóveis (requer sessão de admin; o RLS bloqueia os demais)
+export async function saveSiteData(agent: Agent, properties: Property[]): Promise<void> {
+  const { error: agentError } = await supabase
+    .from("agent_profile")
+    .update({ ...agent, whatsapp: agent.whatsapp.replace(/\D/g, "") })
+    .eq("id", 1);
+  if (agentError) throw agentError;
+
+  if (properties.length > 0) {
+    const { error } = await supabase.from("properties").upsert(properties.map(toRow));
+    if (error) throw error;
   }
 
-  const raw = window.localStorage.getItem(SITE_STORAGE_KEY);
-  if (!raw) {
-    AGENT = { ...DEFAULT_AGENT };
-    PROPERTIES = [...DEFAULT_PROPERTIES];
-    return { agent: AGENT, properties: PROPERTIES };
+  const keep = new Set(properties.map((p) => p.id));
+  const removed = state.properties.filter((p) => !keep.has(p.id)).map((p) => p.id);
+  if (removed.length > 0) {
+    const { error } = await supabase.from("properties").delete().in("id", removed);
+    if (error) throw error;
   }
 
-  try {
-    const parsed = JSON.parse(raw) as { agent?: Partial<typeof DEFAULT_AGENT>; properties?: Property[] };
-    const agent = normalizeAgent(parsed.agent);
-    const properties = normalizeProperties(parsed.properties);
-    AGENT = agent;
-    PROPERTIES = properties;
-    return { agent, properties };
-  } catch {
-    AGENT = { ...DEFAULT_AGENT };
-    PROPERTIES = [...DEFAULT_PROPERTIES];
-    return { agent: AGENT, properties: PROPERTIES };
-  }
+  await loadSiteData();
 }
-
-export function saveSiteData(agent: typeof DEFAULT_AGENT, properties: Property[]) {
-  const nextAgent = normalizeAgent(agent);
-  const nextProperties = normalizeProperties(properties);
-  AGENT = nextAgent;
-  PROPERTIES = nextProperties;
-
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(
-      SITE_STORAGE_KEY,
-      JSON.stringify({ agent: nextAgent, properties: nextProperties })
-    );
-  }
-
-  return { agent: nextAgent, properties: nextProperties };
-}
-
-export function resetSiteData() {
-  AGENT = { ...DEFAULT_AGENT };
-  PROPERTIES = [...DEFAULT_PROPERTIES];
-
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(SITE_STORAGE_KEY);
-  }
-
-  return { agent: AGENT, properties: PROPERTIES };
-}
-
-export async function loadRemoteSiteData() {
-  if (typeof window === "undefined") {
-    return loadSiteData();
-  }
-
-  try {
-    const response = await fetch("/api/site-config");
-    if (!response.ok) throw new Error("API unavailable");
-    const payload = (await response.json()) as {
-      agent?: Partial<typeof DEFAULT_AGENT>;
-      properties?: Property[];
-    };
-    const agent = normalizeAgent(payload.agent);
-    const properties = normalizeProperties(payload.properties);
-    AGENT = agent;
-    PROPERTIES = properties;
-    window.localStorage.setItem(SITE_STORAGE_KEY, JSON.stringify({ agent, properties }));
-    return { agent, properties };
-  } catch {
-    return loadSiteData();
-  }
-}
-
-export async function saveRemoteSiteData(agent: typeof DEFAULT_AGENT, properties: Property[]) {
-  const nextAgent = normalizeAgent(agent);
-  const nextProperties = normalizeProperties(properties);
-
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(
-      SITE_STORAGE_KEY,
-      JSON.stringify({ agent: nextAgent, properties: nextProperties })
-    );
-  }
-
-  try {
-    const response = await fetch("/api/site-config", {
-      method: "POST",
-      headers: adminHeaders(),
-      body: JSON.stringify({ agent: nextAgent, properties: nextProperties }),
-    });
-    if (!response.ok) throw new Error("Save failed");
-    const payload = (await response.json()) as { agent: typeof DEFAULT_AGENT; properties: Property[] };
-    AGENT = normalizeAgent(payload.agent);
-    PROPERTIES = normalizeProperties(payload.properties);
-    return { agent: AGENT, properties: PROPERTIES };
-  } catch {
-    return saveSiteData(nextAgent, nextProperties);
-  }
-}
-
-export async function resetRemoteSiteData() {
-  const next = { agent: { ...DEFAULT_AGENT }, properties: [...DEFAULT_PROPERTIES] };
-  try {
-    const response = await fetch("/api/site-reset", {
-      method: "POST",
-      headers: adminHeaders(),
-      body: JSON.stringify(next),
-    });
-    if (!response.ok) throw new Error("Reset failed");
-    const payload = (await response.json()) as { agent: typeof DEFAULT_AGENT; properties: Property[] };
-    AGENT = normalizeAgent(payload.agent);
-    PROPERTIES = normalizeProperties(payload.properties);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(SITE_STORAGE_KEY, JSON.stringify({ agent: AGENT, properties: PROPERTIES }));
-    }
-    return { agent: AGENT, properties: PROPERTIES };
-  } catch {
-    return resetSiteData();
-  }
-}
-
-loadSiteData();
 
 export const TESTIMONIALS = [
   {

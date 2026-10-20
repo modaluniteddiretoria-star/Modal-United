@@ -7,10 +7,11 @@ import {
   MessageCircle,
   Phone,
 } from "lucide-react";
-import { AGENT } from "../lib/data";
+import { useSiteData } from "../lib/data";
 import { instagramUrl, scrollToId } from "../lib/helpers";
 
 export function Footer() {
+  const { agent: AGENT } = useSiteData();
   return (
     <footer id="contato" className="scroll-mt-24 border-t border-cream-100/10 bg-ink-950">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">

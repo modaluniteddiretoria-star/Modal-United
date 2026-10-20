@@ -12,13 +12,14 @@ import {
   Ruler,
   Star,
 } from "lucide-react";
-import { AGENT, PROPERTIES } from "../lib/data";
+import { DEFAULT_PROPERTIES, useSiteData } from "../lib/data";
 import { brl, instagramUrl, scrollToId } from "../lib/helpers";
 import { GoldButton } from "./Shared";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
+  const { agent: AGENT, properties: PROPERTIES } = useSiteData();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -31,7 +32,7 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
   const cardY = useTransform(scrollYProgress, [0, 1], [0, -70]);
   const featureY = useTransform(scrollYProgress, [0, 1], [0, -160]);
 
-  const featured = PROPERTIES[0];
+  const featured = PROPERTIES[0] ?? DEFAULT_PROPERTIES[0];
 
   return (
     <section ref={ref} className="relative flex min-h-[100svh] items-center overflow-hidden">

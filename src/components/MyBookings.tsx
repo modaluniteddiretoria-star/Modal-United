@@ -10,7 +10,7 @@ import {
   User,
 } from "lucide-react";
 import type { Booking } from "../lib/types";
-import { PROPERTIES } from "../lib/data";
+import { useSiteData } from "../lib/data";
 import { formatDisplayDate } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
 
@@ -23,6 +23,7 @@ export function MyBookings({
   onCancel: (id: string) => void;
   onExplore: () => void;
 }) {
+  const { properties: PROPERTIES } = useSiteData();
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const sorted = [...bookings].sort(

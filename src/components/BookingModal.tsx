@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,17 +11,16 @@ import {
   X,
 } from "lucide-react";
 import type { Booking, Property } from "../lib/types";
-import { AGENT } from "../lib/data";
+import { useSiteData } from "../lib/data";
+import { createBooking, fetchTakenSlots } from "../lib/bookings";
 import {
   TIME_SLOTS,
-  bookingCode,
   brl,
   fmtDateLocal,
   formatDisplayDate,
   isSlotPast,
   maskPhone,
   nextDays,
-  uid,
   weekdayShort,
 } from "../lib/helpers";
 
@@ -29,17 +28,16 @@ const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function BookingModal({
   property,
-  bookings,
   onClose,
   onCreate,
   onViewAll,
 }: {
   property: Property | null;
-  bookings: Booking[];
   onClose: () => void;
   onCreate: (b: Booking) => void;
   onViewAll: () => void;
 }) {
+  const { agent: AGENT } = useSiteData();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
@@ -49,6 +47,9 @@ export function BookingModal({
   const [note, setNote] = useState("");
   const [errors, setErrors] = useState<{ name?: string; phone?: string }>({});
   const [created, setCreated] = useState<Booking | null>(null);
+  const [taken, setTaken] = useState<Set<string>>(() => new Set());
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const days = useMemo(() => nextDays(21), []);
 
@@ -61,6 +62,8 @@ export function BookingModal({
     setTime(null);
     setCreated(null);
     setErrors({});
+    setTaken(new Set());
+    setSubmitError("");
   }
 
   useEffect(() => {
@@ -76,19 +79,36 @@ export function BookingModal({
     };
   }, [property]);
 
-  const takenSlots = useMemo(() => {
-    if (!property || !date) return new Set<string>();
-    return new Set(
-      bookings
-        .filter((b) => b.propertyId === property.id && b.date === date)
-        .map((b) => b.time)
-    );
-  }, [bookings, property, date]);
+  const refreshTaken = useCallback(async () => {
+    if (!property) return;
+    try {
+      const from = fmtDateLocal(days[0]);
+      const to = fmtDateLocal(days[days.length - 1]);
+      setTaken(await fetchTakenSlots(property.id, from, to));
+    } catch {
+      // sem conexão: mantém a lista atual; o servidor valida na confirmação
+    }
+  }, [property, days]);
 
-  const slotDisabled = (t: string) => (date ? isSlotPast(date, t) : false) || takenSlots.has(t);
+  useEffect(() => {
+    if (!property) return;
+    let active = true;
+    fetchTakenSlots(property.id, fmtDateLocal(days[0]), fmtDateLocal(days[days.length - 1]))
+      .then((set) => {
+        if (active) setTaken(set);
+      })
+      .catch(() => {
+        // sem conexão: o servidor valida na confirmação
+      });
+    return () => {
+      active = false;
+    };
+  }, [property, days]);
 
-  const submit = () => {
-    if (!property || !date || !time) return;
+  const slotDisabled = (t: string) => (date ? isSlotPast(date, t) || taken.has(`${date}|${t}`) : false);
+
+  const submit = async () => {
+    if (!property || !date || !time || submitting) return;
     const errs: typeof errors = {};
     if (name.trim().length < 3) errs.name = "Informe seu nome completo.";
     if (phone.replace(/\D/g, "").length < 10)
@@ -96,21 +116,27 @@ export function BookingModal({
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
-    const booking: Booking = {
-      id: uid(),
-      code: bookingCode(),
-      propertyId: property.id,
-      date,
-      time,
-      name: name.trim(),
-      phone,
-      email: email.trim() || undefined,
-      note: note.trim() || undefined,
-      createdAt: Date.now(),
-    };
-    onCreate(booking);
-    setCreated(booking);
-    setStep(3);
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const booking = await createBooking({
+        propertyId: property.id,
+        date,
+        time,
+        name: name.trim(),
+        phone,
+        email: email.trim() || undefined,
+        note: note.trim() || undefined,
+      });
+      onCreate(booking);
+      setCreated(booking);
+      setStep(3);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Não foi possível agendar. Tente novamente.");
+      void refreshTaken();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -444,13 +470,19 @@ export function BookingModal({
                     Voltar
                   </button>
                   <button
-                    onClick={submit}
-                    className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-6 py-3.5 text-sm font-bold text-ink-950 transition-all hover:bg-gold-400 hover:shadow-[0_12px_32px_-10px_rgba(201,160,69,0.6)] active:scale-[0.98]"
+                    onClick={() => void submit()}
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-6 py-3.5 text-sm font-bold text-ink-950 transition-all hover:bg-gold-400 hover:shadow-[0_12px_32px_-10px_rgba(201,160,69,0.6)] active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
                   >
                     <Check className="h-4 w-4" />
-                    Confirmar agendamento
+                    {submitting ? "Agendando..." : "Confirmar agendamento"}
                   </button>
                 </div>
+              )}
+              {step === 2 && submitError && (
+                <p role="alert" className="mt-3 text-right text-sm text-red-300">
+                  {submitError}
+                </p>
               )}
               {step === 3 && (
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">

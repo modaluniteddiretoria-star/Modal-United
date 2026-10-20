@@ -9,7 +9,7 @@ import {
   Ruler,
 } from "lucide-react";
 import type { Property, PropertyCategory } from "../lib/types";
-import { PROPERTIES } from "../lib/data";
+import { useSiteData } from "../lib/data";
 import { brl } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
 
@@ -120,6 +120,7 @@ export function Properties({
   onDetails: (p: Property) => void;
   onSchedule: (p: Property) => void;
 }) {
+  const { properties: PROPERTIES } = useSiteData();
   const [filter, setFilter] = useState<PropertyCategory | "todos">("todos");
 
   const list =

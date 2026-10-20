@@ -1,40 +1,55 @@
 # Modal United
 
 Site da Modal United, consultoria imobiliária em São Paulo: vitrine de imóveis,
-agendamento de visitas e painel administrativo para editar perfil e imóveis.
+agendamento de visitas e painel administrativo para editar perfil, imóveis e ver
+os agendamentos.
 
-Stack: React 19, TypeScript, Vite 7, Tailwind CSS 4, Framer Motion.
+Stack: React 19, TypeScript, Vite 7, Tailwind CSS 4, Framer Motion e Supabase
+(Postgres com RLS, Auth e Storage). Hospedagem na Vercel.
 
 ## Rodando localmente
 
 ```bash
 npm install
-cp .env.example .env   # preencha ADMIN_PASSWORD (mínimo 12 caracteres)
+cp .env.example .env.local   # preencha com a URL e a chave publishable do Supabase
+npm run dev                  # http://localhost:5173
 ```
-
-Em dois terminais:
-
-```bash
-npm run server   # API em http://localhost:3001 (lê ADMIN_PASSWORD do ambiente)
-npm run dev      # site em http://localhost:5173, com /api encaminhado para a API
-```
-
-No PowerShell, defina a senha antes de iniciar a API: `$env:ADMIN_PASSWORD="sua-senha-forte"`.
 
 ## Scripts
 
 | Comando           | O que faz                             |
 | ----------------- | ------------------------------------- |
 | `npm run dev`     | Servidor de desenvolvimento (Vite)    |
-| `npm run server`  | API local (`server.js`)               |
 | `npm run build`   | Checagem de tipos + build de produção |
 | `npm run lint`    | ESLint                                |
 | `npm run preview` | Serve o build de produção             |
 
-## Estado atual e próximos passos
+## Banco de dados (Supabase)
 
-- A API em `server.js` grava os dados em `data/site-config.json`. Isso funciona
-  localmente, mas **não na Vercel** (sistema de arquivos efêmero).
-- Os agendamentos ficam apenas no `localStorage` do visitante.
-- Próxima fase: migrar autenticação, dados do site, imagens e agendamentos para o
-  Supabase (Auth + Postgres com RLS + Storage) e publicar na Vercel.
+O esquema está em [`supabase/migrations`](supabase/migrations) e os dados iniciais em
+[`supabase/seed.sql`](supabase/seed.sql).
+
+| Tabela          | Público                         | Admin                 |
+| --------------- | ------------------------------- | --------------------- |
+| `agent_profile` | lê                              | edita                 |
+| `properties`    | lê                              | cria, edita e remove  |
+| `bookings`      | sem acesso direto (usa as RPCs) | lê e cancela          |
+| `admins`        | sem acesso                      | gerenciado no painel do Supabase |
+
+Os visitantes agendam e cancelam pelas funções `create_booking`, `get_taken_slots`
+e `cancel_booking`, que validam data, horário, telefone e conflitos no servidor.
+As imagens enviadas pelo painel vão para o bucket público `site-images`, onde só
+admins podem enviar arquivos.
+
+### Criando um admin
+
+1. No painel do Supabase: **Authentication → Users → Add user** (marque *Auto Confirm User*).
+2. No SQL Editor, rode:
+
+   ```sql
+   insert into public.admins (user_id)
+   select id from auth.users where email = 'email-do-admin@exemplo.com';
+   ```
+
+3. Recomendado: em **Authentication → Sign In / Providers**, desative
+   *Allow new users to sign up*.

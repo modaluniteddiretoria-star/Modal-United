@@ -60,18 +60,7 @@ export function maskPhone(v: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-export function bookingCode(): string {
-  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 5; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `VIS-${code}`;
-}
 
-export function uid(): string {
-  return `v-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-}
 
 export function isSlotPast(isoDate: string, time: string): boolean {
   const today = fmtDateLocal(new Date());

@@ -1,11 +1,12 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { CalendarDays, MessageCircle } from "lucide-react";
-import { AGENT } from "../lib/data";
+import { useSiteData } from "../lib/data";
 import { scrollToId } from "../lib/helpers";
 import { GoldButton } from "./Shared";
 
 export function CtaBanner() {
+  const { agent: AGENT } = useSiteData();
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,

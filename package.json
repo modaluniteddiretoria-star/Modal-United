@@ -7,11 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "node server.js"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "express": "^5.3.0",
+    "@supabase/supabase-js": "^2.118.0",
     "framer-motion": "^12.35.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",

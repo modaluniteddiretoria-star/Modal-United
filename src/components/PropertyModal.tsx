@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import type { Property } from "../lib/types";
-import { AGENT } from "../lib/data";
+import { useSiteData } from "../lib/data";
 import { brl } from "../lib/helpers";
 
 export function PropertyModal({
@@ -23,6 +23,7 @@ export function PropertyModal({
   onClose: () => void;
   onSchedule: (p: Property) => void;
 }) {
+  const { agent: AGENT } = useSiteData();
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);

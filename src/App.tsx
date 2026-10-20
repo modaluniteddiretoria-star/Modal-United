@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, MessageCircle, XCircle } from "lucide-react";
 import type { Booking, Property } from "./lib/types";
-import { AGENT, PROPERTIES, loadRemoteSiteData } from "./lib/data";
-import { loadBookings, saveBookings } from "./lib/bookings";
+import { loadSiteData, useSiteData } from "./lib/data";
+import { cancelBookingRemote, loadBookings, saveBookings } from "./lib/bookings";
 import { scrollToId } from "./lib/helpers";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -33,17 +33,11 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [adminOpen, setAdminOpen] = useState(false);
 
-  const refreshSiteData = useCallback(async () => {
-    try {
-      await loadRemoteSiteData();
-    } catch {
-      // ignore fallback
-    }
-  }, []);
+  const { agent: AGENT, properties: PROPERTIES } = useSiteData();
 
   useEffect(() => {
-    void refreshSiteData();
-  }, [refreshSiteData]);
+    void loadSiteData();
+  }, []);
 
   const pushToast = useCallback(
     (title: string, description?: string, tone: Toast["tone"] = "success") => {
@@ -61,10 +55,13 @@ export default function App() {
     setBookingFor(p);
   }, []);
 
-  const openBookingById = useCallback((id: string) => {
-    const p = PROPERTIES.find((x) => x.id === id);
-    if (p) openBooking(p);
-  }, [openBooking]);
+  const openBookingById = useCallback(
+    (id: string) => {
+      const p = PROPERTIES.find((x) => x.id === id);
+      if (p) openBooking(p);
+    },
+    [PROPERTIES, openBooking]
+  );
 
   const addBooking = useCallback((b: Booking) => {
     setBookings((prev) => {
@@ -75,7 +72,15 @@ export default function App() {
   }, []);
 
   const cancelBooking = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      const booking = bookings.find((b) => b.id === id);
+      if (!booking) return;
+      try {
+        await cancelBookingRemote(booking);
+      } catch {
+        pushToast("Não foi possível cancelar", "Verifique sua conexão e tente novamente.", "error");
+        return;
+      }
       setBookings((prev) => {
         const next = prev.filter((b) => b.id !== id);
         saveBookings(next);
@@ -83,7 +88,7 @@ export default function App() {
       });
       pushToast("Visita cancelada", "O horário foi liberado para outros clientes.", "error");
     },
-    [pushToast]
+    [bookings, pushToast]
   );
 
   const goBookings = useCallback(() => scrollToId("agendamentos"), []);
@@ -120,7 +125,6 @@ export default function App() {
       <PropertyModal property={detail} onClose={() => setDetail(null)} onSchedule={openBooking} />
       <BookingModal
         property={bookingFor}
-        bookings={bookings}
         onClose={() => setBookingFor(null)}
         onCreate={addBooking}
         onViewAll={goBookings}

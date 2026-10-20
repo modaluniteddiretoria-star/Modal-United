@@ -10,7 +10,7 @@ import {
   Settings2,
   X,
 } from "lucide-react";
-import { AGENT } from "../lib/data";
+import { useSiteData } from "../lib/data";
 import { instagramUrl, scrollToId } from "../lib/helpers";
 
 const LINKS = [
@@ -29,6 +29,7 @@ export function Navbar({
   onOpenBookings: () => void;
   onOpenAdmin: () => void;
 }) {
+  const { agent: AGENT } = useSiteData();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
