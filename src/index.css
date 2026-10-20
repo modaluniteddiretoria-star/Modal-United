@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink-950: #05070a;
+  --color-ink-900: #090d13;
+  --color-ink-850: #0d1219;
+  --color-ink-800: #121927;
+  --color-ink-700: #1c2534;
+  --color-ink-600: #2c3a4f;
+
+  --color-cream-50: #faf7f0;
+  --color-cream-100: #f1eadc;
+  --color-cream-300: #d8cdb8;
+  --color-cream-500: #ab9f86;
+  --color-cream-600: #8f836c;
+
+  --color-gold-300: #ecd9a3;
+  --color-gold-400: #dcbc74;
+  --color-gold-500: #c9a045;
+  --color-gold-600: #a5813a;
+
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-pulse-soft: pulse-soft 2.6s ease-in-out infinite;
+  --animate-float-y: float-y 7s ease-in-out infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+  @keyframes float-y {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(14px); }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-ink-950 text-cream-100 font-sans antialiased;
+}
+
+::selection {
+  background: #c9a045;
+  color: #090d13;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #090d13;
+}
+::-webkit-scrollbar-thumb {
+  background: #2c3a4f;
+  border-radius: 999px;
+  border: 2px solid #090d13;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c9a045;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
