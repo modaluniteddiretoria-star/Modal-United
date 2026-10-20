@@ -37,18 +37,28 @@ export async function fetchTakenSlots(propertyId: string, from: string, to: stri
   );
 }
 
-export async function createBooking(input: Omit<Booking, "id" | "code" | "createdAt">): Promise<Booking> {
-  const { data, error } = await supabase.rpc("create_booking", {
-    p_property_id: input.propertyId,
-    p_visit_date: input.date,
-    p_visit_time: input.time,
-    p_name: input.name,
-    p_phone: input.phone,
-    p_email: input.email ?? null,
-    p_note: input.note ?? null,
+// Agendamento passa pela Edge Function create-booking, que valida o captcha
+export async function createBooking(
+  input: Omit<Booking, "id" | "code" | "createdAt">,
+  captchaToken: string
+): Promise<Booking> {
+  const { data, error } = await supabase.functions.invoke("create-booking", {
+    body: { ...input, token: captchaToken },
   });
-  if (error) throw new Error(error.message || "Não foi possível agendar.");
-  const row = (data as { id: string; code: string }[])[0];
+  if (error) {
+    let message = "Não foi possível agendar. Tente novamente.";
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      try {
+        const payload = (await ctx.json()) as { error?: string };
+        if (payload.error) message = payload.error;
+      } catch {
+        // resposta sem JSON
+      }
+    }
+    throw new Error(message);
+  }
+  const row = data as { id: string; code: string };
   return { ...input, id: row.id, code: row.code, createdAt: Date.now() };
 }
 
