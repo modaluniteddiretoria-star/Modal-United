@@ -5,12 +5,15 @@ export type PropertyCategory =
   | "loft"
   | "studio";
 
+export type PropertyTransaction = "venda" | "aluguel";
+
 export interface Property {
   id: string;
   title: string;
   typeLabel: string;
   category: PropertyCategory;
-  price: number;
+  transaction: PropertyTransaction;
+  price: number; // no aluguel, valor mensal
   condo?: number;
   location: string;
   city: string;

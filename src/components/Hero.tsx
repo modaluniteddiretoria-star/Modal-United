@@ -13,7 +13,7 @@ import {
   Star,
 } from "lucide-react";
 import { DEFAULT_PROPERTIES, useSiteData } from "../lib/data";
-import { brl, instagramUrl, scrollToId } from "../lib/helpers";
+import { instagramUrl, priceLabel, scrollToId } from "../lib/helpers";
 import { GoldButton } from "./Shared";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -233,7 +233,7 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
                   {featured.badge}
                 </span>
                 <p className="absolute bottom-4 left-4 font-display text-2xl text-cream-50">
-                  {brl(featured.price)}
+                  {priceLabel(featured)}
                 </p>
               </div>
               <div className="p-5">

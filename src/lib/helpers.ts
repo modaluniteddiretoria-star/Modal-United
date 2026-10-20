@@ -44,6 +44,11 @@ export function formatDisplayDate(iso: string): string {
   }).format(d);
 }
 
+// Preço com sufixo "/mês" para imóveis de aluguel
+export function priceLabel(p: { price: number; transaction: "venda" | "aluguel" }): string {
+  return p.transaction === "aluguel" ? `${brl(p.price)}/mês` : brl(p.price);
+}
+
 export function brl(v: number): string {
   return v.toLocaleString("pt-BR", {
     style: "currency",

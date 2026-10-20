@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { Property } from "../lib/types";
 import { useSiteData } from "../lib/data";
-import { brl } from "../lib/helpers";
+import { brl, priceLabel } from "../lib/helpers";
 
 export function PropertyModal({
   property,
@@ -86,7 +86,7 @@ export function PropertyModal({
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-display text-2xl text-gold-300 sm:text-3xl">{brl(property.price)}</p>
+                  <p className="font-display text-2xl text-gold-300 sm:text-3xl">{priceLabel(property)}</p>
                   {property.condo && (
                     <p className="text-xs text-cream-300">condomínio {brl(property.condo)}/mês</p>
                   )}

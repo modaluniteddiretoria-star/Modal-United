@@ -102,6 +102,7 @@ export function AdminDashboard({
         title: "Novo imóvel",
         typeLabel: "Apartamento",
         category: "apartamento",
+        transaction: "venda",
         price: 0,
         location: "Centro",
         city: "São Paulo",
@@ -472,7 +473,42 @@ export function AdminDashboard({
                               </label>
 
                               <label className="space-y-2 text-sm text-cream-300">
-                                <span>Preço</span>
+                                <span>Negócio</span>
+                                <select
+                                  value={property.transaction}
+                                  onChange={(e) =>
+                                    updateProperty(property.id, {
+                                      transaction: e.target.value as Property["transaction"],
+                                    })
+                                  }
+                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
+                                >
+                                  <option value="venda">Venda</option>
+                                  <option value="aluguel">Aluguel</option>
+                                </select>
+                              </label>
+
+                              <label className="space-y-2 text-sm text-cream-300">
+                                <span>Categoria (usada nos filtros)</span>
+                                <select
+                                  value={property.category}
+                                  onChange={(e) =>
+                                    updateProperty(property.id, {
+                                      category: e.target.value as Property["category"],
+                                    })
+                                  }
+                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
+                                >
+                                  <option value="casa">Casa</option>
+                                  <option value="apartamento">Apartamento</option>
+                                  <option value="cobertura">Cobertura</option>
+                                  <option value="loft">Loft</option>
+                                  <option value="studio">Studio</option>
+                                </select>
+                              </label>
+
+                              <label className="space-y-2 text-sm text-cream-300">
+                                <span>{property.transaction === "aluguel" ? "Aluguel mensal (R$)" : "Preço (R$)"}</span>
                                 <input
                                   type="number"
                                   value={property.price}

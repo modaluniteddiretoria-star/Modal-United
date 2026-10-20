@@ -25,6 +25,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     title: "Cobertura Vista Ibirapuera",
     typeLabel: "Cobertura",
     category: "cobertura",
+    transaction: "venda",
     price: 3850000,
     condo: 3200,
     location: "Moema",
@@ -50,6 +51,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     title: "Villa Contemporânea Alphaville",
     typeLabel: "Casa",
     category: "casa",
+    transaction: "venda",
     price: 2890000,
     condo: 1800,
     location: "Alphaville",
@@ -75,6 +77,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     title: "Apartamento Jardins Signature",
     typeLabel: "Apartamento",
     category: "apartamento",
+    transaction: "venda",
     price: 1780000,
     condo: 2400,
     location: "Jardins",
@@ -99,6 +102,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     title: "Loft Brick 1904",
     typeLabel: "Loft",
     category: "loft",
+    transaction: "venda",
     price: 940000,
     condo: 980,
     location: "Vila Madalena",
@@ -124,6 +128,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     title: "Casa de Campo Haras Santa Maria",
     typeLabel: "Casa de Campo",
     category: "casa",
+    transaction: "venda",
     price: 2150000,
     condo: 1500,
     location: "Haras Santa Maria",
@@ -148,6 +153,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     title: "Studio Arte Pinheiros",
     typeLabel: "Studio",
     category: "studio",
+    transaction: "venda",
     price: 690000,
     condo: 720,
     location: "Pinheiros",
@@ -214,6 +220,7 @@ interface PropertyRow {
   title: string;
   type_label: string;
   category: Property["category"];
+  transaction: Property["transaction"];
   price: number;
   condo: number | null;
   location: string;
@@ -234,6 +241,7 @@ function fromRow(r: PropertyRow): Property {
     title: r.title,
     typeLabel: r.type_label,
     category: r.category,
+    transaction: r.transaction ?? "venda",
     price: Number(r.price),
     condo: r.condo == null ? undefined : Number(r.condo),
     location: r.location,
@@ -254,6 +262,7 @@ function toRow(p: Property, index: number): PropertyRow {
     title: p.title.trim(),
     type_label: p.typeLabel.trim(),
     category: p.category,
+    transaction: p.transaction,
     price: p.price,
     condo: p.condo ?? null,
     location: p.location.trim(),

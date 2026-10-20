@@ -16,7 +16,7 @@ import { createBooking, fetchTakenSlots } from "../lib/bookings";
 import { Turnstile, type TurnstileHandle } from "./Turnstile";
 import {
   TIME_SLOTS,
-  brl,
+  priceLabel,
   fmtDateLocal,
   formatDisplayDate,
   isSlotPast,
@@ -190,7 +190,7 @@ export function BookingModal({
                 <h3 className="truncate font-display text-lg text-cream-50">{property.title}</h3>
                 <p className="flex items-center gap-1 text-xs text-cream-300">
                   <MapPin className="h-3 w-3 text-gold-400" />
-                  {property.location}, {property.city} · <span className="text-gold-300">{brl(property.price)}</span>
+                  {property.location}, {property.city} · <span className="text-gold-300">{priceLabel(property)}</span>
                 </p>
               </div>
               <button

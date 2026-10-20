@@ -7,10 +7,12 @@ import {
   CalendarDays,
   MapPin,
   Ruler,
+  SearchX,
+  Tag,
 } from "lucide-react";
-import type { Property, PropertyCategory } from "../lib/types";
+import type { Property, PropertyCategory, PropertyTransaction } from "../lib/types";
 import { useSiteData } from "../lib/data";
-import { brl } from "../lib/helpers";
+import { priceLabel } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
 
 const FILTERS: { label: string; value: PropertyCategory | "todos" }[] = [
@@ -20,6 +22,12 @@ const FILTERS: { label: string; value: PropertyCategory | "todos" }[] = [
   { label: "Coberturas", value: "cobertura" },
   { label: "Lofts", value: "loft" },
   { label: "Studios", value: "studio" },
+];
+
+const DEALS: { label: string; value: PropertyTransaction | "todos" }[] = [
+  { label: "Todos", value: "todos" },
+  { label: "Comprar", value: "venda" },
+  { label: "Alugar", value: "aluguel" },
 ];
 
 function PropertyCard({
@@ -64,8 +72,11 @@ function PropertyCard({
           <ArrowUpRight className="h-4 w-4" />
         </span>
         <p className="absolute bottom-4 left-4 font-display text-2xl text-cream-50 drop-shadow">
-          {brl(property.price)}
+          {priceLabel(property)}
         </p>
+        <span className="absolute bottom-5 right-4 rounded-full border border-cream-100/25 bg-ink-950/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-cream-100 backdrop-blur">
+          {property.transaction === "aluguel" ? "Para alugar" : "À venda"}
+        </span>
       </button>
 
       {/* Conteúdo */}
@@ -120,11 +131,17 @@ export function Properties({
   onDetails: (p: Property) => void;
   onSchedule: (p: Property) => void;
 }) {
-  const { properties: PROPERTIES } = useSiteData();
+  const { properties: PROPERTIES, agent } = useSiteData();
   const [filter, setFilter] = useState<PropertyCategory | "todos">("todos");
+  const [deal, setDeal] = useState<PropertyTransaction | "todos">("todos");
 
-  const list =
-    filter === "todos" ? PROPERTIES : PROPERTIES.filter((p) => p.category === filter);
+  const list = PROPERTIES.filter(
+    (p) => (filter === "todos" || p.category === filter) && (deal === "todos" || p.transaction === deal)
+  );
+
+  const sellUrl = `https://wa.me/${agent.whatsapp}?text=${encodeURIComponent(
+    `Olá ${agent.name}! Tenho um imóvel e quero vender ou anunciar com a ${agent.brand}.`
+  )}`;
 
   return (
     <section id="imoveis" className="relative mx-auto max-w-7xl scroll-mt-24 px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
@@ -143,8 +160,50 @@ export function Properties({
         />
       </div>
 
+      {/* Negócio: comprar / alugar + vender */}
+      <Reveal delay={0.1} className="mt-10 flex flex-wrap items-center justify-between gap-4">
+        <div
+          role="tablist"
+          aria-label="Tipo de negócio"
+          className="inline-flex rounded-full border border-cream-100/15 bg-ink-900/70 p-1"
+        >
+          {DEALS.map((d) => {
+            const active = deal === d.value;
+            return (
+              <button
+                key={d.value}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setDeal(d.value)}
+                className={`relative rounded-full px-5 py-2 text-sm font-bold transition-colors ${
+                  active ? "text-ink-950" : "text-cream-300 hover:text-gold-300"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="deal-pill"
+                    className="absolute inset-0 rounded-full bg-cream-100"
+                    transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  />
+                )}
+                <span className="relative z-10">{d.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <a
+          href={sellUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-full border border-gold-500/50 px-5 py-2.5 text-sm font-bold text-gold-300 transition-colors hover:border-gold-400 hover:bg-gold-500/10"
+        >
+          <Tag className="h-4 w-4" />
+          Quero vender meu imóvel
+        </a>
+      </Reveal>
+
       {/* Filtros */}
-      <Reveal delay={0.15} className="mt-10">
+      <Reveal delay={0.15} className="mt-5">
         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
           {FILTERS.map((f) => {
             const active = filter === f.value;
@@ -186,6 +245,26 @@ export function Properties({
           ))}
         </AnimatePresence>
       </motion.div>
+
+      {list.length === 0 && (
+        <div className="mt-10 flex flex-col items-center gap-3 rounded-3xl border border-cream-100/10 bg-ink-900/60 px-6 py-14 text-center">
+          <SearchX className="h-8 w-8 text-gold-400" />
+          <p className="font-display text-xl text-cream-50">Nenhum imóvel com esse filtro no momento</p>
+          <p className="max-w-md text-sm text-cream-300">
+            Fale com a {agent.name}: ela pode buscar opções fora do site para você.
+          </p>
+          <a
+            href={`https://wa.me/${agent.whatsapp}?text=${encodeURIComponent(
+              `Olá ${agent.name}! Procuro um imóvel ${deal === "aluguel" ? "para alugar" : deal === "venda" ? "para comprar" : ""} e não encontrei no site.`.replace(/\s+/g, " ")
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-2 rounded-full bg-gold-500 px-5 py-2.5 text-sm font-bold text-ink-950 hover:bg-gold-400"
+          >
+            Falar no WhatsApp
+          </a>
+        </div>
+      )}
     </section>
   );
 }
