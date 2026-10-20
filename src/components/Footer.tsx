@@ -8,10 +8,11 @@ import {
   Phone,
 } from "lucide-react";
 import { useSiteData } from "../lib/data";
-import { instagramUrl, scrollToId } from "../lib/helpers";
+import { creciLabel, instagramUrl, scrollToId } from "../lib/helpers";
 
 export function Footer() {
-  const { agent: AGENT } = useSiteData();
+  const { agent: AGENT, content } = useSiteData();
+  const creci = creciLabel(AGENT.creci);
   return (
     <footer id="contato" className="scroll-mt-24 border-t border-cream-100/10 bg-ink-950">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
@@ -66,9 +67,9 @@ export function Footer() {
           <h3 className="text-xs font-bold uppercase tracking-[0.24em] text-gold-400">Navegação</h3>
           <ul className="mt-5 space-y-3 text-sm">
             {[
-              ["Imóveis à venda", "imoveis"],
+              ["Imóveis", "imoveis"],
               ["Sobre o corretor", "sobre"],
-              ["Depoimentos", "depoimentos"],
+              ...(content.testimonials.length > 0 ? [["Depoimentos", "depoimentos"]] : []),
               ["Meus agendamentos", "agendamentos"],
             ].map(([label, id]) => (
               <li key={id}>
@@ -101,10 +102,8 @@ export function Footer() {
             </li>
             <li className="flex items-start gap-3">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-400" />
-              <span>
-                Av. Faria Lima, 4.440 · 12º andar
-                <br />
-                Itaim Bibi · {AGENT.city}
+              <span className="whitespace-pre-line">
+                {content.address ? `${content.address}\n${AGENT.city}` : AGENT.city}
               </span>
             </li>
           </ul>
@@ -135,7 +134,7 @@ export function Footer() {
       <div className="border-t border-cream-100/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-cream-500 sm:flex-row sm:px-6 lg:px-8">
           <p>
-            © 2026 {AGENT.brand} · {AGENT.name} · {AGENT.creci}
+            © {new Date().getFullYear()} {[AGENT.brand, AGENT.name, creci].filter(Boolean).join(" · ")}
           </p>
           <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <a href="#privacidade" className="underline-offset-2 hover:text-gold-300 hover:underline">

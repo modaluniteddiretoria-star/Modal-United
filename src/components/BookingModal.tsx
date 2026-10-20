@@ -513,7 +513,7 @@ export function BookingModal({
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
                   <a
                     href={`https://wa.me/${AGENT.whatsapp}?text=${encodeURIComponent(
-                      `Olá Maia! Acabei de agendar uma visita (${created?.code}) para o imóvel "${property.title}".`
+                      `Olá ${AGENT.name.split(" ")[0]}! Acabei de agendar uma visita (${created?.code}) para o imóvel "${property.title}".`
                     )}`}
                     target="_blank"
                     rel="noreferrer"

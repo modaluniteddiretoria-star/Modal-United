@@ -1,15 +1,21 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { BadgeCheck, ShieldCheck, TrendingUp, Handshake } from "lucide-react";
-import { useSiteData, type Agent } from "../lib/data";
+import { useSiteData, type Agent, type SiteContent } from "../lib/data";
+import { creciLabel } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
 
-const credentials = (agent: Agent) => [
-  {
-    icon: BadgeCheck,
-    title: `Corretor certificado há ${agent.years} anos`,
-    text: `${agent.creci} · Pós-graduado em Negócios Imobiliários pela FGV.`,
-  },
+const credentials = (agent: Agent, content: SiteContent) => [
+  ...(agent.creci || agent.years > 0 || content.about.education
+    ? [
+        {
+          icon: BadgeCheck,
+          title: agent.years > 0 ? `Corretor há ${agent.years} anos` : "Corretor credenciado",
+          text: [creciLabel(agent.creci), content.about.education].filter(Boolean).join(" · ") ||
+            "Atendimento com registro no conselho regional.",
+        },
+      ]
+    : []),
   {
     icon: ShieldCheck,
     title: "Documentação verificada",
@@ -28,8 +34,8 @@ const credentials = (agent: Agent) => [
 ];
 
 export function About() {
-  const { agent: AGENT } = useSiteData();
-  const CREDENTIALS = credentials(AGENT);
+  const { agent: AGENT, content } = useSiteData();
+  const CREDENTIALS = credentials(AGENT, content);
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -47,7 +53,7 @@ export function About() {
           <motion.div style={{ y: imgY }} className="relative overflow-hidden rounded-[2rem] will-change-transform">
             <img
               src="/images/about.jpg"
-              alt="Mariana Duarte entregando as chaves para um casal de clientes"
+              alt="Entrega de chaves a um casal de clientes"
               className="aspect-[4/3] w-full object-cover"
               loading="lazy"
             />
@@ -61,7 +67,7 @@ export function About() {
               <div>
                 <p className="font-display text-lg text-cream-50">{AGENT.name}</p>
                 <p className="text-[11px] uppercase tracking-[0.2em] text-gold-400">
-                  {AGENT.creci}
+                  {creciLabel(AGENT.creci) || AGENT.tagline}
                 </p>
               </div>
             </div>
@@ -78,7 +84,7 @@ export function About() {
                 <span className="text-gold-300">compra com segurança</span>
               </>
             }
-            description="Há 14 anos ajudo famílias e investidores a tomar a melhor decisão imobiliária das suas vidas. Meu trabalho não é empurrar imóvel: é entender o seu momento, filtrar o mercado e negociar como se o dinheiro fosse meu."
+            description={content.about.description}
           />
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
@@ -96,7 +102,12 @@ export function About() {
           </div>
 
           <Reveal delay={0.4}>
-            <p className="mt-10 font-display text-3xl italic text-gold-300/90">
+            {content.about.quote && (
+              <blockquote className="mt-10 border-l-2 border-gold-500/60 pl-4 text-base italic leading-relaxed text-cream-200">
+                “{content.about.quote}”
+              </blockquote>
+            )}
+            <p className={`${content.about.quote ? "mt-3" : "mt-10"} font-display text-3xl italic text-gold-300/90`}>
               “{AGENT.name.split(" ")[0]}”
             </p>
           </Reveal>

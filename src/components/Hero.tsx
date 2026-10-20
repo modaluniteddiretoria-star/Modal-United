@@ -13,13 +13,15 @@ import {
   Star,
 } from "lucide-react";
 import { DEFAULT_PROPERTIES, useSiteData } from "../lib/data";
-import { instagramUrl, priceLabel, scrollToId } from "../lib/helpers";
+import { creciLabel, instagramUrl, priceLabel, scrollToId } from "../lib/helpers";
 import { GoldButton } from "./Shared";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
-  const { agent: AGENT, properties: PROPERTIES } = useSiteData();
+  const { agent: AGENT, properties: PROPERTIES, content } = useSiteData();
+  const creci = creciLabel(AGENT.creci);
+  const highlights = content.stats.slice(0, 3);
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -96,17 +98,24 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
                   <h3 className="truncate font-display text-xl font-semibold text-cream-50 sm:text-2xl">
                     {AGENT.name}
                   </h3>
-                  <p className="text-xs text-cream-300">{AGENT.creci}</p>
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <div className="flex text-gold-400">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className="h-3.5 w-3.5 fill-current" />
-                      ))}
+                  <p className="text-xs text-cream-300">
+                    {[AGENT.tagline, creci].filter(Boolean).join(" · ")}
+                  </p>
+                  {AGENT.reviews > 0 && AGENT.rating > 0 && (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <div className="flex text-gold-400">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3.5 w-3.5 ${i < Math.round(AGENT.rating) ? "fill-current" : "opacity-30"}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-cream-300">
+                        {AGENT.rating.toLocaleString("pt-BR")} · {AGENT.reviews} avaliações
+                      </span>
                     </div>
-                    <span className="text-xs text-cream-300">
-                      {AGENT.rating.toLocaleString("pt-BR")} · {AGENT.reviews} avaliações
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -138,17 +147,20 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
                 </a>
               </div>
 
-              <div className="mt-3 flex items-center justify-between border-t border-cream-100/10 pt-3 text-[11px] text-cream-300">
-                <span>
-                  · <strong className="text-cream-100">{AGENT.sold}+</strong> vendas
-                </span>
-                <span>
-                  · <strong className="text-cream-100">{AGENT.years}</strong> anos de mercado
-                </span>
-                <span className="hidden sm:inline">
-                  · <strong className="text-cream-100">98%</strong> satisfação
-                </span>
-              </div>
+              {(AGENT.sold > 0 || AGENT.years > 0) && (
+                <div className="mt-3 flex items-center gap-6 border-t border-cream-100/10 pt-3 text-[11px] text-cream-300">
+                  {AGENT.sold > 0 && (
+                    <span>
+                      · <strong className="text-cream-100">{AGENT.sold}+</strong> vendas
+                    </span>
+                  )}
+                  {AGENT.years > 0 && (
+                    <span>
+                      · <strong className="text-cream-100">{AGENT.years}</strong> anos de mercado
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -193,18 +205,16 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
               </GoldButton>
             </div>
 
-            <div className="mt-10 hidden items-center gap-8 sm:flex">
-              {[
-                ["R$ 480M+", "em transações"],
-                ["18 dias", "tempo médio de venda"],
-                ["47 bairros", "de atuação"],
-              ].map(([v, l]) => (
-                <div key={l}>
-                  <p className="font-display text-2xl text-gold-300">{v}</p>
-                  <p className="text-xs uppercase tracking-widest text-cream-500">{l}</p>
-                </div>
-              ))}
-            </div>
+            {highlights.length > 0 && (
+              <div className="mt-10 hidden items-center gap-8 sm:flex">
+                {highlights.map((h) => (
+                  <div key={h.label}>
+                    <p className="font-display text-2xl text-gold-300">{h.value}</p>
+                    <p className="text-xs uppercase tracking-widest text-cream-500">{h.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
 

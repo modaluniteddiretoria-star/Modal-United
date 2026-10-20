@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import type { Property } from "../lib/types";
 import { useSiteData } from "../lib/data";
-import { brl, priceLabel } from "../lib/helpers";
+import { brl, creciLabel, priceLabel } from "../lib/helpers";
 import { PropertyGallery } from "./PropertyGallery";
 
 export function PropertyModal({
@@ -143,12 +143,12 @@ export function PropertyModal({
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-base text-cream-50">{AGENT.name}</p>
                   <p className="text-xs text-cream-300">
-                    {AGENT.creci} · responde em média em 15 min
+                    {creciLabel(AGENT.creci) || AGENT.tagline}
                   </p>
                 </div>
                 <a
                   href={`https://wa.me/${AGENT.whatsapp}?text=${encodeURIComponent(
-                    `Olá Mariana! Tenho interesse no imóvel "${property.title}".`
+                    `Olá ${AGENT.name.split(" ")[0]}! Tenho interesse no imóvel "${property.title}".`
                   )}`}
                   target="_blank"
                   rel="noreferrer"
@@ -170,7 +170,7 @@ export function PropertyModal({
                 </button>
                 <a
                   href={`https://wa.me/${AGENT.whatsapp}?text=${encodeURIComponent(
-                    `Olá Mariana! Tenho interesse no imóvel "${property.title}".`
+                    `Olá ${AGENT.name.split(" ")[0]}! Tenho interesse no imóvel "${property.title}".`
                   )}`}
                   target="_blank"
                   rel="noreferrer"

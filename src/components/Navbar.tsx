@@ -29,7 +29,8 @@ export function Navbar({
   onOpenBookings: () => void;
   onOpenAdmin: () => void;
 }) {
-  const { agent: AGENT } = useSiteData();
+  const { agent: AGENT, content } = useSiteData();
+  const links = LINKS.filter((l) => l.id !== "depoimentos" || content.testimonials.length > 0);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -86,7 +87,7 @@ export function Navbar({
 
           {/* Desktop links */}
           <nav className="hidden items-center gap-8 lg:flex">
-            {LINKS.map((l) => (
+            {links.map((l) => (
               <button
                 key={l.id}
                 onClick={() => go(l.id)}
@@ -171,7 +172,7 @@ export function Navbar({
               </div>
 
               <nav className="mt-10 flex flex-col gap-1">
-                {LINKS.map((l, i) => (
+                {links.map((l, i) => (
                   <motion.button
                     key={l.id}
                     initial={{ opacity: 0, x: 24 }}

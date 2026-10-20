@@ -11,7 +11,8 @@ import {
   X,
 } from "lucide-react";
 import type { Property } from "../lib/types";
-import { saveSiteData, useSiteData } from "../lib/data";
+import { saveSiteContent, saveSiteData, useSiteData } from "../lib/data";
+import { AdminContent } from "./AdminContent";
 import { supabase } from "../lib/supabase";
 import { AdminBookings } from "./AdminBookings";
 import { AdminChat } from "./AdminChat";
@@ -23,6 +24,7 @@ const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const TABS = [
   { id: "perfil", label: "Perfil" },
   { id: "imoveis", label: "Imóveis" },
+  { id: "conteudo", label: "Conteúdo" },
   { id: "agendamentos", label: "Agendamentos" },
   { id: "conversas", label: "Conversas" },
 ] as const;
@@ -40,10 +42,11 @@ export function AdminDashboard({
   open: boolean;
   onClose: () => void;
 }) {
-  const { agent: AGENT, properties: PROPERTIES } = useSiteData();
+  const { agent: AGENT, properties: PROPERTIES, content: CONTENT } = useSiteData();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("perfil");
   const [profile, setProfile] = useState(() => ({ ...AGENT }));
   const [properties, setProperties] = useState<Property[]>(() => structuredClone(PROPERTIES));
+  const [content, setContent] = useState(() => structuredClone(CONTENT));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -60,6 +63,7 @@ export function AdminDashboard({
     if (open) {
       setProfile({ ...AGENT });
       setProperties(structuredClone(PROPERTIES));
+      setContent(structuredClone(CONTENT));
       setSaveError("");
     }
   }
@@ -182,6 +186,7 @@ export function AdminDashboard({
     setSaveError("");
     try {
       await saveSiteData(profile, properties);
+      await saveSiteContent(content);
       onClose();
     } catch (err) {
       console.error(err);
@@ -451,16 +456,60 @@ export function AdminDashboard({
                       </label>
 
                       <label className="space-y-2 text-sm text-cream-300">
-                        <span>CRECI / perfil</span>
+                        <span>Frase de apresentação</span>
                         <input
-                          value={profile.creci}
-                          onChange={(e) => updateProfile("creci", e.target.value)}
+                          value={profile.tagline}
+                          onChange={(e) => updateProfile("tagline", e.target.value.slice(0, 120))}
+                          placeholder="Ex.: Atendimento imobiliário especializado"
                           className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
                         />
                       </label>
+
+                      <label className="space-y-2 text-sm text-cream-300">
+                        <span>
+                          CRECI <span className="text-gold-400">(obrigatório por lei em anúncios)</span>
+                        </span>
+                        <input
+                          value={profile.creci}
+                          onChange={(e) => updateProfile("creci", e.target.value.slice(0, 40))}
+                          placeholder="Ex.: 123456-F"
+                          className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
+                        />
+                      </label>
+
+                      <div className="grid grid-cols-2 gap-4 md:col-span-2 lg:grid-cols-4">
+                        {(
+                          [
+                            ["rating", "Nota média (0 a 5)", 0.1, 5],
+                            ["reviews", "Nº de avaliações", 1, 100000],
+                            ["years", "Anos de mercado", 1, 80],
+                            ["sold", "Imóveis vendidos", 1, 100000],
+                          ] as const
+                        ).map(([key, label, step, max]) => (
+                          <label key={key} className="space-y-2 text-sm text-cream-300">
+                            <span>{label}</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={max}
+                              step={step}
+                              value={profile[key]}
+                              onChange={(e) =>
+                                updateProfile(key, Math.min(max, Math.max(0, Number(e.target.value) || 0)))
+                              }
+                              className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
+                            />
+                          </label>
+                        ))}
+                        <p className="col-span-2 text-xs text-cream-500 lg:col-span-4">
+                          Deixe 0 para esconder no site. Use só números reais (ex.: nota do Google Meu Negócio).
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
+
+                {tab === "conteudo" && <AdminContent content={content} onChange={setContent} />}
 
                 {tab === "agendamentos" && <AdminBookings />}
 

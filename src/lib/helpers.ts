@@ -81,6 +81,21 @@ export function instagramUrl(handle: string): string {
   return user ? `https://instagram.com/${encodeURIComponent(user)}` : "https://instagram.com";
 }
 
+// "CRECI 12345-J" a partir do que foi digitado no painel ("" se vazio)
+export function creciLabel(creci: string): string {
+  const n = creci.trim().replace(/^creci[\s:-]*/i, "");
+  return n ? `CRECI ${n}` : "";
+}
+
+export function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter((w) => w.length > 2 || /^[A-Z]/.test(w))
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
 export function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }

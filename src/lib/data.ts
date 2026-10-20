@@ -6,18 +6,72 @@ export const DEFAULT_AGENT = {
   brand: "Modal United",
   name: "Maia",
   role: "Consultor de Imóveis · Modal United",
-  creci: "Atendimento imobiliário especializado",
+  creci: "", // número do CRECI (obrigatório em anúncios)
+  tagline: "Atendimento imobiliário especializado",
   phone: "(11) 98417-2850",
   whatsapp: "5511984172850",
   email: "contato@modalunited.com.br",
   instagram: "@modalunited",
   city: "São Paulo, SP",
   photo: "/images/agent.jpg",
-  rating: 4.9,
-  reviews: 187,
-  years: 14,
-  sold: 350,
+  // 0 = não exibir
+  rating: 0,
+  reviews: 0,
+  years: 0,
+  sold: 0,
 };
+
+// Conteúdo editável no painel (aba Conteúdo). Campos vazios ficam ocultos no site.
+export interface StatItem {
+  value: string; // ex.: "350+", "R$ 480M", "98%"
+  label: string;
+}
+
+export interface Testimonial {
+  name: string;
+  role: string;
+  quote: string;
+}
+
+export interface SiteContent {
+  stats: StatItem[];
+  testimonials: Testimonial[];
+  address: string;
+  about: { description: string; education: string; quote: string };
+}
+
+export const DEFAULT_CONTENT: SiteContent = {
+  stats: [],
+  testimonials: [],
+  address: "",
+  about: {
+    description:
+      "Ajudo famílias e investidores a tomar a melhor decisão imobiliária das suas vidas. Meu trabalho não é empurrar imóvel: é entender o seu momento, filtrar o mercado e negociar como se o dinheiro fosse meu.",
+    education: "",
+    quote: "",
+  },
+};
+
+function normalizeContent(raw: unknown): SiteContent {
+  const d = (raw && typeof raw === "object" ? raw : {}) as Partial<SiteContent>;
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  return {
+    stats: Array.isArray(d.stats)
+      ? d.stats.map((x) => ({ value: str(x?.value), label: str(x?.label) })).slice(0, 4)
+      : [],
+    testimonials: Array.isArray(d.testimonials)
+      ? d.testimonials
+          .map((x) => ({ name: str(x?.name), role: str(x?.role), quote: str(x?.quote) }))
+          .slice(0, 6)
+      : [],
+    address: str(d.address),
+    about: {
+      description: str(d.about?.description) || DEFAULT_CONTENT.about.description,
+      education: str(d.about?.education),
+      quote: str(d.about?.quote),
+    },
+  };
+}
 
 export const DEFAULT_PROPERTIES: Property[] = [
   {
@@ -187,6 +241,7 @@ export type Agent = typeof DEFAULT_AGENT;
 export interface SiteData {
   agent: Agent;
   properties: Property[];
+  content: SiteContent;
   status: "loading" | "ready" | "error";
 }
 
@@ -196,6 +251,7 @@ export interface SiteData {
 let state: SiteData = {
   agent: { ...DEFAULT_AGENT },
   properties: [...DEFAULT_PROPERTIES],
+  content: DEFAULT_CONTENT,
   status: "loading",
 };
 const listeners = new Set<() => void>();
@@ -291,13 +347,14 @@ function toRow(p: Property, index: number): PropertyRow {
 // Leitura e escrita
 // ---------------------------------------------------------------------------
 export async function loadSiteData(): Promise<void> {
-  const [agentRes, propsRes] = await Promise.all([
+  const [agentRes, propsRes, contentRes] = await Promise.all([
     supabase.from("agent_profile").select("*").eq("id", 1).maybeSingle(),
     supabase.from("properties").select("*").order("sort_order").order("created_at"),
+    supabase.from("site_content").select("data").eq("id", 1).maybeSingle(),
   ]);
 
-  if (agentRes.error || propsRes.error) {
-    console.error("Falha ao carregar dados do site", agentRes.error ?? propsRes.error);
+  if (agentRes.error || propsRes.error || contentRes.error) {
+    console.error("Falha ao carregar dados do site", agentRes.error ?? propsRes.error ?? contentRes.error);
     setState({ status: "error" });
     return;
   }
@@ -309,6 +366,7 @@ export async function loadSiteData(): Promise<void> {
         name: row.name,
         role: row.role,
         creci: row.creci,
+        tagline: row.tagline ?? "",
         phone: row.phone,
         whatsapp: row.whatsapp,
         email: row.email,
@@ -325,8 +383,36 @@ export async function loadSiteData(): Promise<void> {
   setState({
     agent,
     properties: (propsRes.data as PropertyRow[]).map(fromRow),
+    content: normalizeContent((contentRes.data as { data: unknown } | null)?.data),
     status: "ready",
   });
+}
+
+// Salva o conteúdo editável (requer sessão de admin)
+export async function saveSiteContent(content: SiteContent): Promise<void> {
+  const clean: SiteContent = {
+    stats: content.stats
+      .map((x) => ({ value: x.value.trim().slice(0, 20), label: x.label.trim().slice(0, 40) }))
+      .filter((x) => x.value && x.label)
+      .slice(0, 4),
+    testimonials: content.testimonials
+      .map((x) => ({
+        name: x.name.trim().slice(0, 80),
+        role: x.role.trim().slice(0, 80),
+        quote: x.quote.trim().slice(0, 600),
+      }))
+      .filter((x) => x.name && x.quote)
+      .slice(0, 6),
+    address: content.address.trim().slice(0, 200),
+    about: {
+      description: content.about.description.trim().slice(0, 800),
+      education: content.about.education.trim().slice(0, 160),
+      quote: content.about.quote.trim().slice(0, 300),
+    },
+  };
+  const { error } = await supabase.from("site_content").update({ data: clean }).eq("id", 1);
+  if (error) throw error;
+  setState({ content: normalizeContent(clean) });
 }
 
 // Salva perfil e imóveis (requer sessão de admin; o RLS bloqueia os demais)
@@ -351,27 +437,3 @@ export async function saveSiteData(agent: Agent, properties: Property[]): Promis
 
   await loadSiteData();
 }
-
-export const TESTIMONIALS = [
-  {
-    name: "Fernanda e Ricardo Alves",
-    role: "Compraram uma cobertura em Moema",
-    quote:
-      "O Maia entendeu em uma conversa o que procurávamos há dois anos. Em três semanas estávamos visitando o apartamento que hoje chamamos de lar. Impecável do início à escritura.",
-    initials: "FR",
-  },
-  {
-    name: "Dr. Paulo Henrique Sampaio",
-    role: "Investidor · 3 imóveis adquiridos",
-    quote:
-      "Já fechei três negócios com o Maia. Análise fria dos números, negociação firme e zero enrolação. É o único consultor para quem eu ligo antes de tomar qualquer decisão imobiliária.",
-    initials: "PS",
-  },
-  {
-    name: "Juliana Mendonça",
-    role: "Vendeu e comprou com a Modal United",
-    quote:
-      "Vendeu meu apartamento em 40 dias por um valor acima do que eu imaginava e ainda me achou a casa dos sonhos em Alphaville. O agendamento pelo site facilitou tudo — visita marcada em 2 minutos.",
-    initials: "JM",
-  },
-];

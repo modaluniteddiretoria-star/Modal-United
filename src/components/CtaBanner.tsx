@@ -56,7 +56,7 @@ export function CtaBanner() {
           className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-cream-300 sm:text-base"
         >
           Agende agora mesmo — horários de segunda a sábado, com confirmação em
-          instantes e acompanhamento exclusivo da Mariana em toda a visita.
+          instantes e acompanhamento exclusivo do {AGENT.name.split(" ")[0]} em toda a visita.
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
