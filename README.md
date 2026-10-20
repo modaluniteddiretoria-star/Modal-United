@@ -36,8 +36,14 @@ O esquema está em [`supabase/migrations`](supabase/migrations) e os dados inici
 | `bookings`      | sem acesso direto (usa as RPCs) | lê e cancela          |
 | `admins`        | sem acesso                      | gerenciado no painel do Supabase |
 
-Os visitantes agendam e cancelam pelas funções `create_booking`, `get_taken_slots`
-e `cancel_booking`, que validam data, horário, telefone e conflitos no servidor.
+Os visitantes agendam pela Edge Function `create-booking`
+([`supabase/functions`](supabase/functions)), que valida o captcha invisível do
+Cloudflare Turnstile e então chama `create_booking` com o service role (o RPC não
+é executável por `anon`). Horários ocupados e cancelamento usam `get_taken_slots`
+e `cancel_booking`. Todas validam data, horário, telefone e conflitos no servidor.
+
+Variáveis: `VITE_TURNSTILE_SITE_KEY` (pública, na Vercel e no `.env.local`) e o
+secret `TURNSTILE_SECRET_KEY` da Edge Function (só no painel do Supabase).
 As imagens enviadas pelo painel vão para o bucket público `site-images`, onde só
 admins podem enviar arquivos.
 
