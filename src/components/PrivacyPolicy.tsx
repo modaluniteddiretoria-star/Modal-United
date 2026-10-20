@@ -107,6 +107,11 @@ export function PrivacyPolicy() {
                   e-mail e observações (os dois últimos são opcionais), além do imóvel, data e horário escolhidos.
                 </p>
                 <p>
+                  <strong className="text-cream-100">No chat do site:</strong> o nome (opcional) e as mensagens que
+                  você escrever. Quando a corretora está offline, um assistente automático responde dúvidas
+                  básicas; todas as mensagens ficam registradas para ela responder depois.
+                </p>
+                <p>
                   <strong className="text-cream-100">Dados técnicos:</strong> para proteger o formulário contra
                   robôs, usamos o Cloudflare Turnstile, que analisa sinais do navegador e do dispositivo (como
                   endereço IP) no momento do agendamento.
@@ -119,6 +124,7 @@ export function PrivacyPolicy() {
               <Section title="3. Para que usamos">
                 <ul className="list-disc space-y-1 pl-5">
                   <li>Registrar e confirmar sua visita e entrar em contato sobre ela, inclusive por WhatsApp.</li>
+                  <li>Responder às suas mensagens no chat do site.</li>
                   <li>Evitar agendamentos duplicados no mesmo horário e impedir abuso do formulário.</li>
                 </ul>
                 <p>
@@ -175,8 +181,8 @@ export function PrivacyPolicy() {
               <Section title="6. Dados guardados no seu navegador">
                 <p>
                   Para mostrar “Minhas visitas”, o site guarda no seu próprio navegador (armazenamento local) o
-                  código e os dados das visitas que você agendou. Você pode apagar isso limpando os dados do site
-                  no navegador.
+                  código e os dados das visitas que você agendou, além de um identificador da sua conversa no chat
+                  (para você poder retomá-la). Você pode apagar isso limpando os dados do site no navegador.
                 </p>
               </Section>
 

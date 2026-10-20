@@ -14,6 +14,7 @@ import type { Property } from "../lib/types";
 import { saveSiteData, useSiteData } from "../lib/data";
 import { supabase } from "../lib/supabase";
 import { AdminBookings } from "./AdminBookings";
+import { AdminChat } from "./AdminChat";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -22,7 +23,10 @@ const TABS = [
   { id: "perfil", label: "Perfil" },
   { id: "imoveis", label: "Imóveis" },
   { id: "agendamentos", label: "Agendamentos" },
+  { id: "conversas", label: "Conversas" },
 ] as const;
+
+const HEARTBEAT_MS = 30000;
 
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -46,6 +50,7 @@ export function AdminDashboard({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [unreadChats, setUnreadChats] = useState(0);
 
   // Recarrega os dados atuais sempre que o painel é aberto
   const [wasOpen, setWasOpen] = useState(open);
@@ -57,6 +62,18 @@ export function AdminDashboard({
       setSaveError("");
     }
   }
+
+  // Presença: enquanto o painel está aberto, a corretora aparece online no chat do site
+  useEffect(() => {
+    if (!open || !authenticated) return;
+    const beat = () => void supabase.rpc("agent_heartbeat");
+    const first = window.setTimeout(beat, 0);
+    const timer = window.setInterval(beat, HEARTBEAT_MS);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
+  }, [open, authenticated]);
 
   // Sessão do Supabase: só libera o painel para usuários em public.admins
   useEffect(() => {
@@ -297,6 +314,11 @@ export function AdminDashboard({
                       }`}
                     >
                       {item.label}
+                      {item.id === "conversas" && unreadChats > 0 && (
+                        <span className="ml-2 rounded-full bg-gold-400 px-1.5 py-0.5 text-[10px] font-bold text-ink-950">
+                          {unreadChats}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </nav>
@@ -428,6 +450,11 @@ export function AdminDashboard({
                 )}
 
                 {tab === "agendamentos" && <AdminBookings />}
+
+                {/* Fica montado para manter o tempo real e o contador de não lidas */}
+                <div className={tab === "conversas" ? "h-full" : "hidden"}>
+                  <AdminChat onUnreadChange={setUnreadChats} />
+                </div>
 
                 {tab === "imoveis" && (
                   <div className="space-y-6">

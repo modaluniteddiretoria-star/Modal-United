@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, MessageCircle, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import type { Booking, Property } from "./lib/types";
 import { loadSiteData, useSiteData } from "./lib/data";
 import { cancelBookingRemote, loadBookings, saveBookings } from "./lib/bookings";
@@ -19,6 +19,7 @@ import { PropertyModal } from "./components/PropertyModal";
 import { BookingModal } from "./components/BookingModal";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PrivacyPolicy } from "./components/PrivacyPolicy";
+import { ChatWidget } from "./components/ChatWidget";
 
 interface Toast {
   id: number;
@@ -34,7 +35,7 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [adminOpen, setAdminOpen] = useState(false);
 
-  const { agent: AGENT, properties: PROPERTIES } = useSiteData();
+  const { properties: PROPERTIES } = useSiteData();
 
   useEffect(() => {
     void loadSiteData();
@@ -163,25 +164,8 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      {/* WhatsApp flutuante */}
-      <motion.a
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 1.6, type: "spring", damping: 14 }}
-        href={`https://wa.me/${AGENT.whatsapp}?text=${encodeURIComponent(
-          "Olá Maia! Vim pelo seu site e quero conversar sobre um imóvel."
-        )}`}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Falar com a Maia no WhatsApp"
-        className="group fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full bg-emerald-500 p-4 text-ink-950 shadow-[0_16px_40px_-10px_rgba(16,185,129,0.55)] transition-all hover:scale-105 hover:bg-emerald-400 sm:bottom-8 sm:right-8"
-      >
-        <MessageCircle className="h-6 w-6" />
-        <span className="max-w-0 overflow-hidden text-sm font-bold transition-all duration-300 group-hover:max-w-[160px] group-hover:pr-1">
-          Falar com a Maia
-        </span>
-        <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 animate-pulse-soft rounded-full border-2 border-ink-950 bg-gold-400" />
-      </motion.a>
+      {/* Chat (ao vivo quando a corretora está no painel; bot quando offline) */}
+      <ChatWidget />
     </div>
   );
 }
