@@ -13,6 +13,7 @@ import {
 import type { Property } from "../lib/types";
 import { useSiteData } from "../lib/data";
 import { brl, priceLabel } from "../lib/helpers";
+import { PropertyGallery } from "./PropertyGallery";
 
 export function PropertyModal({
   property,
@@ -59,12 +60,15 @@ export function PropertyModal({
             className="relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl border border-cream-100/10 bg-ink-900 shadow-2xl sm:rounded-3xl"
           >
             {/* Imagem */}
-            <div className="relative h-64 sm:h-80">
-              <img src={property.image} alt={property.title} className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/20 to-transparent" />
+            <PropertyGallery
+              key={property.id}
+              images={[property.image, ...property.gallery]}
+              title={property.title}
+            >
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-900 via-ink-900/20 to-transparent" />
               <button
                 onClick={onClose}
-                className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-ink-950/60 text-cream-100 backdrop-blur transition-colors hover:bg-ink-950"
+                className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-ink-950/60 text-cream-100 backdrop-blur transition-colors hover:bg-ink-950"
                 aria-label="Fechar"
               >
                 <X className="h-5 w-5" />
@@ -74,7 +78,7 @@ export function PropertyModal({
                   {property.badge}
                 </span>
               )}
-              <div className="absolute bottom-4 left-5 right-5 flex flex-wrap items-end justify-between gap-3">
+              <div className="pointer-events-none absolute bottom-4 left-5 right-5 flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gold-400">
                     {property.typeLabel}
@@ -92,7 +96,7 @@ export function PropertyModal({
                   )}
                 </div>
               </div>
-            </div>
+            </PropertyGallery>
 
             <div className="p-5 sm:p-7">
               {/* Specs */}

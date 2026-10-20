@@ -15,6 +15,7 @@ import { saveSiteData, useSiteData } from "../lib/data";
 import { supabase } from "../lib/supabase";
 import { AdminBookings } from "./AdminBookings";
 import { AdminChat } from "./AdminChat";
+import { AdminGallery } from "./AdminGallery";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -132,6 +133,7 @@ export function AdminDashboard({
         baths: 2,
         area: 80,
         image: "/images/prop-1.jpg",
+        gallery: [],
         description: "Descreva o imóvel aqui.",
         features: ["Feature 1", "Feature 2"],
       },
@@ -142,29 +144,35 @@ export function AdminDashboard({
     setProperties((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handlePhotoUpload = async (file: File | null, target: "profile" | "property", id?: string) => {
-    if (!file) return;
+  // Envia uma imagem ao Storage e devolve a URL pública (ou null em caso de erro)
+  const uploadImage = async (file: File, folder: string): Promise<string | null> => {
     if (!IMAGE_TYPES.includes(file.type)) {
-      setSaveError("Use uma imagem JPG, PNG ou WebP.");
-      return;
+      setSaveError("Use imagens JPG, PNG ou WebP.");
+      return null;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setSaveError("A imagem deve ter no máximo 5 MB.");
-      return;
+      setSaveError(`"${file.name}" passa de 5 MB.`);
+      return null;
     }
     setUploading(true);
     setSaveError("");
     const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-    const path = `${target}/${crypto.randomUUID()}.${ext}`;
+    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage
       .from("site-images")
       .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
     setUploading(false);
     if (error) {
       setSaveError("Falha ao enviar a imagem. Tente novamente.");
-      return;
+      return null;
     }
-    const url = supabase.storage.from("site-images").getPublicUrl(path).data.publicUrl;
+    return supabase.storage.from("site-images").getPublicUrl(path).data.publicUrl;
+  };
+
+  const handlePhotoUpload = async (file: File | null, target: "profile" | "property", id?: string) => {
+    if (!file) return;
+    const url = await uploadImage(file, target);
+    if (!url) return;
     if (target === "profile") setProfile((prev) => ({ ...prev, photo: url }));
     if (target === "property" && id) updateProperty(id, { image: url });
   };
@@ -590,10 +598,17 @@ export function AdminDashboard({
                             </div>
                           </div>
 
+                          <AdminGallery
+                            cover={property.image}
+                            gallery={property.gallery}
+                            onChange={(next) => updateProperty(property.id, next)}
+                            upload={(file) => uploadImage(file, "property")}
+                          />
+
                           <div className="mt-4 flex items-center justify-between border-t border-cream-100/10 pt-4">
                             <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-cream-100/15 px-4 py-2 text-sm font-semibold text-cream-200 transition hover:border-gold-400/60 hover:text-gold-300">
                               <ImagePlus className="h-4 w-4" />
-                              Subir foto
+                              Trocar capa
                               <input
                                 type="file"
                                 accept="image/jpeg,image/png,image/webp"

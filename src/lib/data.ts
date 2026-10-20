@@ -34,6 +34,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     baths: 5,
     area: 320,
     image: "/images/prop-1.jpg",
+    gallery: [],
     badge: "Exclusivo",
     description:
       "Cobertura dúplex com vista definitiva para o Parque Ibirapuera. Terraço gourmet amplo com deck, living em pé-direito duplo, automação completa e acabamentos assinados. Um dos endereços mais desejados de São Paulo.",
@@ -60,6 +61,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     baths: 6,
     area: 480,
     image: "/images/prop-2.jpg",
+    gallery: [],
     badge: "Destaque",
     description:
       "Casa de arquitetura contemporânea em terreno plano no coração de Alphaville. Linhas retas, esquadrias do piso ao teto, piscina com borda infinita e integração total entre área social e jardim.",
@@ -86,6 +88,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     baths: 2,
     area: 186,
     image: "/images/prop-3.jpg",
+    gallery: [],
     description:
       "Apartamento reformado por escritório renomado nos Jardins. Projeto sofisticado com marcenaria sob medida, piso em carvalho europeu e iluminação natural abundante durante todo o dia.",
     features: [
@@ -111,6 +114,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     baths: 2,
     area: 124,
     image: "/images/prop-4.jpg",
+    gallery: [],
     badge: "Novo",
     description:
       "Loft industrial autêntico em edifício tombado de 1904, na Vila Madalena. Tijolos aparentes, pé-direito de 4,2 m, mezanino em estrutura metálica e iluminação de galeria. Um apartamento com alma de ateliê.",
@@ -137,6 +141,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     baths: 4,
     area: 520,
     image: "/images/prop-5.jpg",
+    gallery: [],
     description:
       "Refúgio de campo a 1h de São Paulo. Arquitetura que abraça a paisagem, varandas amplas voltadas para o pôr do sol, piscina aquecida e pomar. Perfeita para fins de semana em família ou home office definitivo.",
     features: [
@@ -162,6 +167,7 @@ export const DEFAULT_PROPERTIES: Property[] = [
     baths: 1,
     area: 54,
     image: "/images/prop-6.jpg",
+    gallery: [],
     badge: "Novo",
     description:
       "Studio projetado para quem vive a cidade. Planta inteligente com integração total, armários ocultos, varanda de frente para o oeste e prédio com rooftop colaborativo. Excelente liquidez para investidores.",
@@ -229,6 +235,7 @@ interface PropertyRow {
   baths: number;
   area: number;
   image: string;
+  gallery: string[] | null;
   badge: Property["badge"] | null;
   description: string;
   features: string[];
@@ -250,6 +257,7 @@ function fromRow(r: PropertyRow): Property {
     baths: r.baths,
     area: r.area,
     image: r.image,
+    gallery: r.gallery ?? [],
     badge: r.badge ?? undefined,
     description: r.description,
     features: r.features ?? [],
@@ -271,6 +279,7 @@ function toRow(p: Property, index: number): PropertyRow {
     baths: p.baths,
     area: p.area,
     image: p.image.trim(),
+    gallery: p.gallery.map((g) => g.trim()).filter(Boolean).slice(0, 20),
     badge: p.badge ?? null,
     description: p.description.trim(),
     features: p.features.map((f) => f.trim()).filter(Boolean),

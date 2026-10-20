@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowUpRight,
   Bath,
@@ -41,6 +41,13 @@ function PropertyCard({
   onDetails: (p: Property) => void;
   onSchedule: (p: Property) => void;
 }) {
+  // Parallax: a foto se desloca mais devagar que o card enquanto a página rola
+  const imageBox = useRef<HTMLButtonElement>(null);
+  const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: imageBox, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], reduce ? ["0%", "0%"] : ["-9%", "9%"]);
+  const second = property.gallery[0];
+
   return (
     <motion.article
       layout
@@ -52,16 +59,28 @@ function PropertyCard({
     >
       {/* Imagem */}
       <button
+        ref={imageBox}
         onClick={() => onDetails(property)}
         className="relative block h-60 w-full overflow-hidden text-left sm:h-64"
         aria-label={`Ver detalhes de ${property.title}`}
       >
-        <img
-          src={property.image}
-          alt={property.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
-        />
+        <motion.div style={{ y }} className="absolute inset-x-0 -top-[10%] h-[120%]">
+          <img
+            src={property.image}
+            alt={property.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-110"
+          />
+          {second && (
+            <img
+              src={second}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-110 group-hover:opacity-100"
+            />
+          )}
+        </motion.div>
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950/80 via-transparent to-transparent" />
         {property.badge && (
           <span className="absolute left-4 top-4 rounded-full bg-gold-500 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-ink-950">

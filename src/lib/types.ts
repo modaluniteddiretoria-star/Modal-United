@@ -20,7 +20,8 @@ export interface Property {
   beds: number;
   baths: number;
   area: number;
-  image: string;
+  image: string; // capa
+  gallery: string[]; // fotos extras, em ordem
   badge?: "Novo" | "Exclusivo" | "Destaque";
   description: string;
   features: string[];
