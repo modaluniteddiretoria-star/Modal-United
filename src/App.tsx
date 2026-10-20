@@ -18,6 +18,7 @@ import { Footer } from "./components/Footer";
 import { PropertyModal } from "./components/PropertyModal";
 import { BookingModal } from "./components/BookingModal";
 import { AdminDashboard } from "./components/AdminDashboard";
+import { PrivacyPolicy } from "./components/PrivacyPolicy";
 
 interface Toast {
   id: number;
@@ -130,6 +131,7 @@ export default function App() {
         onViewAll={goBookings}
       />
       <AdminDashboard open={adminOpen} onClose={() => setAdminOpen(false)} />
+      <PrivacyPolicy />
 
       {/* Toasts */}
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex flex-col items-center gap-2 px-4 sm:bottom-8">

@@ -406,6 +406,14 @@ export function BookingModal({
                         className="w-full resize-none rounded-2xl border border-cream-100/12 bg-ink-800/70 px-4 py-3.5 text-sm text-cream-100 placeholder:text-cream-500/60 focus:border-gold-400/60 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
                       />
                     </div>
+                    <p className="text-xs leading-relaxed text-cream-500">
+                      Usamos seus dados só para confirmar e acompanhar esta visita. Este formulário é protegido pelo
+                      Cloudflare Turnstile. Veja nossa{" "}
+                      <a href="#privacidade" className="text-gold-300 underline underline-offset-2 hover:text-gold-200">
+                        Política de Privacidade
+                      </a>
+                      .
+                    </p>
                   </motion.div>
                 )}
 

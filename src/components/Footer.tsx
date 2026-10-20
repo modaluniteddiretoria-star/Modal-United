@@ -137,7 +137,13 @@ export function Footer() {
           <p>
             © 2026 {AGENT.brand} · {AGENT.name} · {AGENT.creci}
           </p>
-          <p>Todos os preços sujeitos a alteração sem aviso prévio.</p>
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <a href="#privacidade" className="underline-offset-2 hover:text-gold-300 hover:underline">
+              Política de Privacidade
+            </a>
+            <span aria-hidden="true">·</span>
+            <span>Todos os preços sujeitos a alteração sem aviso prévio.</span>
+          </p>
         </div>
       </div>
     </footer>
