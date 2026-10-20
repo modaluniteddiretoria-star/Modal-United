@@ -142,7 +142,7 @@ export function AdminChat({ onUnreadChange }: { onUnreadChange?: (n: number) => 
         </div>
         {conversations.length === 0 && (
           <p className="rounded-3xl border border-cream-100/10 bg-ink-950/40 p-6 text-sm text-cream-300">
-            Nenhuma conversa ainda. Quando um visitante escrever no chat do site, ela aparece aqui na hora.
+            Nenhuma conversa ainda. Quando um visitante escrever no chat do site, a conversa aparece aqui na hora.
           </p>
         )}
         <ul className="space-y-2">

@@ -29,7 +29,7 @@ export function Footer() {
             </div>
           </div>
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-cream-300">
-            Corretora especialista em imóveis de alto padrão em São Paulo e interior. Curadoria,
+            Corretor especialista em imóveis de alto padrão em São Paulo e interior. Curadoria,
             transparência e negociação do início à entrega das chaves.
           </p>
           <div className="mt-5 flex items-center gap-3">
@@ -67,7 +67,7 @@ export function Footer() {
           <ul className="mt-5 space-y-3 text-sm">
             {[
               ["Imóveis à venda", "imoveis"],
-              ["Sobre a corretora", "sobre"],
+              ["Sobre o corretor", "sobre"],
               ["Depoimentos", "depoimentos"],
               ["Meus agendamentos", "agendamentos"],
             ].map(([label, id]) => (

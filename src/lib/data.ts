@@ -5,7 +5,7 @@ import { supabase } from "./supabase";
 export const DEFAULT_AGENT = {
   brand: "Modal United",
   name: "Maia",
-  role: "Consultora de Imóveis · Modal United",
+  role: "Consultor de Imóveis · Modal United",
   creci: "Atendimento imobiliário especializado",
   phone: "(11) 98417-2850",
   whatsapp: "5511984172850",
@@ -348,14 +348,14 @@ export const TESTIMONIALS = [
     name: "Fernanda e Ricardo Alves",
     role: "Compraram uma cobertura em Moema",
     quote:
-      "A Maia entendeu em uma conversa o que procurávamos há dois anos. Em três semanas estávamos visitando o apartamento que hoje chamamos de lar. Impecável do início à escritura.",
+      "O Maia entendeu em uma conversa o que procurávamos há dois anos. Em três semanas estávamos visitando o apartamento que hoje chamamos de lar. Impecável do início à escritura.",
     initials: "FR",
   },
   {
     name: "Dr. Paulo Henrique Sampaio",
     role: "Investidor · 3 imóveis adquiridos",
     quote:
-      "Já fechei três negócios com a Maia. Análise fria dos números, negociação firme e zero enrolação. É a única consultora para quem eu ligo antes de tomar qualquer decisão imobiliária.",
+      "Já fechei três negócios com o Maia. Análise fria dos números, negociação firme e zero enrolação. É o único consultor para quem eu ligo antes de tomar qualquer decisão imobiliária.",
     initials: "PS",
   },
   {

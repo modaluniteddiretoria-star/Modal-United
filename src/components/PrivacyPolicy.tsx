@@ -108,8 +108,8 @@ export function PrivacyPolicy() {
                 </p>
                 <p>
                   <strong className="text-cream-100">No chat do site:</strong> o nome (opcional) e as mensagens que
-                  você escrever. Quando a corretora está offline, um assistente automático responde dúvidas
-                  básicas; todas as mensagens ficam registradas para ela responder depois.
+                  você escrever. Quando o corretor está offline, um assistente automático responde dúvidas
+                  básicas; todas as mensagens ficam registradas para ele responder depois.
                 </p>
                 <p>
                   <strong className="text-cream-100">Dados técnicos:</strong> para proteger o formulário contra

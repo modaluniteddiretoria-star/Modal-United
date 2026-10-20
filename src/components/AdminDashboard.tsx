@@ -63,7 +63,7 @@ export function AdminDashboard({
     }
   }
 
-  // Presença: enquanto o painel está aberto, a corretora aparece online no chat do site
+  // Presença: enquanto o painel está aberto, o corretor aparece online no chat do site
   useEffect(() => {
     if (!open || !authenticated) return;
     const beat = () => void supabase.rpc("agent_heartbeat");

@@ -7,8 +7,8 @@ import { Reveal, SectionHeading } from "./Shared";
 const credentials = (agent: Agent) => [
   {
     icon: BadgeCheck,
-    title: `Corretora certificada há ${agent.years} anos`,
-    text: `${agent.creci} · Pós-graduada em Negócios Imobiliários pela FGV.`,
+    title: `Corretor certificado há ${agent.years} anos`,
+    text: `${agent.creci} · Pós-graduado em Negócios Imobiliários pela FGV.`,
   },
   {
     icon: ShieldCheck,
@@ -71,7 +71,7 @@ export function About() {
         {/* Texto */}
         <div className="order-1 lg:order-2">
           <SectionHeading
-            eyebrow="Sobre a corretora"
+            eyebrow="Sobre o corretor"
             title={
               <>
                 Quem negocia comigo,{" "}

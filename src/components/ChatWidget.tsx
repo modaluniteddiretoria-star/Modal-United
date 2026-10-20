@@ -77,7 +77,7 @@ export function ChatWidget() {
     };
   }, [session, open, refresh]);
 
-  // Status online da corretora
+  // Status online do corretor
   useEffect(() => {
     if (!open) return;
     const check = () => void isAgentOnline().then(setOnline);
@@ -183,7 +183,7 @@ export function ChatWidget() {
             {/* Mensagens */}
             <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
               <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-ink-800 px-4 py-2.5 text-sm text-cream-100">
-                Olá! Sou {online ? `a ${firstName}` : `o assistente da ${agent.brand}`}. Como posso ajudar? Pode
+                Olá! Sou {online ? `o ${firstName}` : `o assistente da ${agent.brand}`}. Como posso ajudar? Pode
                 perguntar sobre imóveis, visitas, aluguel ou venda.
               </div>
               {messages.map((m) => (
@@ -283,7 +283,7 @@ export function ChatWidget() {
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
         {!open && (
           <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-bold transition-all duration-300 group-hover:max-w-[180px] group-hover:pr-1">
-            Falar com a {firstName}
+            Falar com o {firstName}
           </span>
         )}
         {unread > 0 && (

@@ -320,8 +320,8 @@ export function BookingModal({
                       })}
                     </div>
                     <p className="mt-4 text-xs text-cream-500">
-                      · Visitas de segunda a sábado, das 9h às 18h · duração média de 45 min · a
-                      corretora encontra você no local.
+                      · Visitas de segunda a sábado, das 9h às 18h · duração média de 45 min · o
+                      corretor encontra você no local.
                     </p>
                   </motion.div>
                 )}
@@ -437,7 +437,7 @@ export function BookingModal({
                       Visita agendada com sucesso!
                     </h3>
                     <p className="mt-2 max-w-sm text-sm leading-relaxed text-cream-300">
-                      {created.name.split(" ")[0]}, sua visita está confirmada. A Maia entrará em
+                      {created.name.split(" ")[0]}, sua visita está confirmada. O {AGENT.name.split(" ")[0]} entrará em
                       contato pelo WhatsApp para alinhar os detalhes do encontro.
                     </p>
 

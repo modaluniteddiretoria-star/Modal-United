@@ -251,7 +251,7 @@ export function Properties({
           <SearchX className="h-8 w-8 text-gold-400" />
           <p className="font-display text-xl text-cream-50">Nenhum imóvel com esse filtro no momento</p>
           <p className="max-w-md text-sm text-cream-300">
-            Fale com a {agent.name}: ela pode buscar opções fora do site para você.
+            Fale com o {agent.name}: ele pode buscar opções fora do site para você.
           </p>
           <a
             href={`https://wa.me/${agent.whatsapp}?text=${encodeURIComponent(

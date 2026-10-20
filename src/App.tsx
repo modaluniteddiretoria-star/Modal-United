@@ -164,7 +164,7 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      {/* Chat (ao vivo quando a corretora está no painel; bot quando offline) */}
+      {/* Chat (ao vivo quando o corretor está no painel; bot quando offline) */}
       <ChatWidget />
     </div>
   );

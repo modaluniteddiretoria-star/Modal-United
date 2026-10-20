@@ -80,7 +80,7 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
                   <div className="absolute -inset-1.5 rounded-full bg-gradient-to-tr from-gold-600 via-gold-400 to-gold-300 opacity-90" />
                   <img
                     src={AGENT.photo}
-                    alt={`Foto da corretora ${AGENT.name}`}
+                    alt={`Foto do corretor ${AGENT.name}`}
                     className="relative h-20 w-20 rounded-full border-4 border-ink-900 object-cover sm:h-24 sm:w-24"
                   />
                   <span className="absolute bottom-1 right-1 z-10 h-4 w-4 rounded-full border-2 border-ink-900 bg-emerald-400">
@@ -91,7 +91,7 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
                 {/* Dados */}
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gold-400">
-                    Sua especialista em imóveis
+                    Seu especialista em imóveis
                   </p>
                   <h3 className="truncate font-display text-xl font-semibold text-cream-50 sm:text-2xl">
                     {AGENT.name}

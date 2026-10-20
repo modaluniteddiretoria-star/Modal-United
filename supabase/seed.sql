@@ -1,7 +1,7 @@
 -- Dados iniciais: perfil e imóveis de exemplo
 
 insert into public.agent_profile (id, brand, name, role, creci, phone, whatsapp, email, instagram, city, photo, rating, reviews, years, sold)
-values (1, 'Modal United', 'Maia', 'Consultora de Imóveis · Modal United', 'Atendimento imobiliário especializado', '(11) 98417-2850', '5511984172850', 'contato@modalunited.com.br', '@modalunited', 'São Paulo, SP', '/images/agent.jpg', 4.9, 187, 14, 350);
+values (1, 'Modal United', 'Maia', 'Consultor de Imóveis · Modal United', 'Atendimento imobiliário especializado', '(11) 98417-2850', '5511984172850', 'contato@modalunited.com.br', '@modalunited', 'São Paulo, SP', '/images/agent.jpg', 4.9, 187, 14, 350);
 
 insert into public.properties (id, title, type_label, category, price, condo, location, city, beds, baths, area, image, badge, description, features, sort_order)
 values

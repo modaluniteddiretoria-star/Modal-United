@@ -1,5 +1,5 @@
 // Chat do site: inicia conversas (com Cloudflare Turnstile), recebe mensagens
-// dos visitantes e, se a corretora estiver offline, responde com um bot simples.
+// dos visitantes e, se o corretor estiver offline, responde com um bot simples.
 // A leitura das mensagens pelo visitante é feita pelo RPC public.chat_poll.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
@@ -66,21 +66,21 @@ function botReply(message: string, agent: Agent, isFirst: boolean): string | nul
   if (has("agend", "visita", "visitar", "conhecer o imovel", "horario"))
     return `Para agendar uma visita, clique em "Agendar visita" no imóvel que você gostou e escolha o dia e o horário (segunda a sábado, das 9h às 17h15). Você recebe um código de confirmação na hora.`;
   if (has("alug", "locacao", "locar"))
-    return `Temos imóveis para alugar! Na lista de imóveis, use o filtro "Alugar" para ver as opções e os valores mensais. Se não encontrar o que procura, deixe aqui o que você precisa que a ${first} busca para você.`;
+    return `Temos imóveis para alugar! Na lista de imóveis, use o filtro "Alugar" para ver as opções e os valores mensais. Se não encontrar o que procura, deixe aqui o que você precisa que o ${first} busca para você.`;
   if (has("vender", "vendo", "anunciar", "avaliar", "avaliacao", "meu imovel"))
-    return `Que ótimo! A ${first} pode avaliar e anunciar o seu imóvel. Deixe aqui o bairro, o tipo e o tamanho do imóvel, e ela retorna assim que estiver online. Se preferir, fale direto pelo ${zap}.`;
+    return `Que ótimo! O ${first} pode avaliar e anunciar o seu imóvel. Deixe aqui o bairro, o tipo e o tamanho do imóvel, e ele retorna assim que estiver online. Se preferir, fale direto pelo ${zap}.`;
   if (has("financ", "credito", "fgts", "entrada"))
-    return `A ${first} acompanha você na parte de financiamento e documentação. Conte aqui o imóvel de interesse e como pretende pagar, e ela responde com as opções.`;
+    return `O ${first} acompanha você na parte de financiamento e documentação. Conte aqui o imóvel de interesse e como pretende pagar, e ele responde com as opções.`;
   if (has("preco", "valor", "quanto custa", "condominio", "iptu"))
-    return `O preço e o condomínio de cada imóvel aparecem no card e em "Detalhes". Se quiser negociar ou saber mais, deixe sua pergunta aqui que a ${first} responde.`;
+    return `O preço e o condomínio de cada imóvel aparecem no card e em "Detalhes". Se quiser negociar ou saber mais, deixe sua pergunta aqui que o ${first} responde.`;
   if (has("document", "papel", "escritura", "certidao"))
-    return `Todos os imóveis do site passam por verificação de documentação. A ${first} explica cada etapa quando estiver online. Deixe sua dúvida aqui!`;
+    return `Todos os imóveis do site passam por verificação de documentação. O ${first} explica cada etapa quando estiver online. Deixe sua dúvida aqui!`;
   if (has("onde", "endereco", "localiza", "bairro", "regiao"))
     return `Atendemos em ${agent.city} e região. A localização de cada imóvel aparece no card. Quer ajuda para encontrar algo em um bairro específico? Escreva aqui.`;
   if (has("whats", "telefone", "ligar", "numero", "contato"))
-    return `Você pode falar com a ${first} pelo ${zap}. Sua mensagem aqui também fica registrada e ela responde quando voltar.`;
+    return `Você pode falar com o ${first} pelo ${zap}. Sua mensagem aqui também fica registrada e ele responde quando voltar.`;
   if (isFirst || /\b(oi|ola|opa|bom dia|boa tarde|boa noite)\b/.test(t))
-    return `Olá! Sou o assistente virtual da ${agent.brand}. A ${first} não está online agora, mas sua mensagem ficou registrada e ela responde assim que voltar. Posso ajudar com dúvidas sobre visitas, aluguel, venda ou financiamento. Se preferir, chame no ${zap}.`;
+    return `Olá! Sou o assistente virtual da ${agent.brand}. O ${first} não está online agora, mas sua mensagem ficou registrada e ele responde assim que voltar. Posso ajudar com dúvidas sobre visitas, aluguel, venda ou financiamento. Se preferir, chame no ${zap}.`;
   return null;
 }
 
@@ -106,7 +106,7 @@ async function maybeBotReply(db: SupabaseClient, conversationId: string, message
       .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
       .limit(1);
     if (recent && recent.length > 0) return;
-    reply = `Recebi sua mensagem! A ${(agent as Agent).name.split(" ")[0]} responde assim que estiver online. Se for urgente, chame no WhatsApp ${(agent as Agent).phone}.`;
+    reply = `Recebi sua mensagem! O ${(agent as Agent).name.split(" ")[0]} responde assim que estiver online. Se for urgente, chame no WhatsApp ${(agent as Agent).phone}.`;
   }
   await db.from("chat_messages").insert({ conversation_id: conversationId, sender: "bot", body: reply });
 }
