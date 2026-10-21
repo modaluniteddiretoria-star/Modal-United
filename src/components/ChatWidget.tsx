@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { LogIn, MessageCircle, Send, X } from "lucide-react";
+import { LogIn, Send, X } from "lucide-react";
 import { useSiteData } from "../lib/data";
 import { openAuth, useAuth } from "../lib/auth";
 import { type ChatMessage, fetchMyMessages, isAgentOnline, sendChat, subscribeMyMessages } from "../lib/chat";
@@ -249,7 +249,7 @@ export function ChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Botão flutuante */}
+      {/* Botão flutuante: orbe animado */}
       <motion.button
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -257,19 +257,28 @@ export function ChatWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Fechar chat" : `Conversar com ${firstName}`}
         aria-expanded={open}
-        className="group fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-full bg-emerald-500 p-4 text-ink-950 shadow-[0_16px_40px_-10px_rgba(16,185,129,0.55)] transition-all hover:scale-105 hover:bg-emerald-400 sm:bottom-8 sm:right-8"
+        className="group fixed bottom-5 right-5 z-50 flex items-center gap-3 sm:bottom-8 sm:right-8"
       >
-        {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
         {!open && (
-          <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-bold transition-all duration-300 group-hover:max-w-[180px] group-hover:pr-1">
+          <span className="pointer-events-none max-w-0 overflow-hidden whitespace-nowrap rounded-full bg-ink-900/90 text-sm font-bold text-cream-50 opacity-0 backdrop-blur transition-all duration-300 group-hover:max-w-[200px] group-hover:px-4 group-hover:py-2 group-hover:opacity-100">
             Falar com o {firstName}
           </span>
         )}
-        {unread > 0 && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink-950 bg-gold-400 px-1 text-[10px] font-bold">
-            {unread}
+        <span className="relative grid h-16 w-16 place-items-center transition-transform duration-300 group-hover:scale-110 group-active:scale-95">
+          <span className="siri-orb-glow" aria-hidden="true" />
+          <span className="siri-orb h-full w-full" aria-hidden="true">
+            <span className="siri-orb__blob siri-orb__blob--a" />
+            <span className="siri-orb__blob siri-orb__blob--b" />
+            <span className="siri-orb__blob siri-orb__blob--c" />
+            <span className="siri-orb__blob siri-orb__blob--d" />
           </span>
-        )}
+          {open && <X className="absolute z-10 h-6 w-6 text-white drop-shadow" />}
+          {unread > 0 && (
+            <span className="absolute -right-1 -top-1 z-10 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink-950 bg-gold-400 px-1 text-[10px] font-bold text-ink-950">
+              {unread}
+            </span>
+          )}
+        </span>
       </motion.button>
     </>
   );
