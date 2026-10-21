@@ -37,8 +37,8 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
       {/* Parallax background */}
       <motion.div style={{ y: bgY, scale: bgScale }} className="absolute inset-0 will-change-transform">
         <img
-          src="/images/hero.jpg"
-          alt="Mansão moderna de alto padrão com piscina ao entardecer"
+          src="/images/hero.webp"
+          alt="Casa moderna de alto padrão com fachada de vidro ao entardecer"
           className="h-full w-full object-cover"
         />
       </motion.div>
