@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, XCircle } from "lucide-react";
 import type { Booking, Property } from "./lib/types";
 import { loadSiteData, useSiteData } from "./lib/data";
-import { cancelBookingRemote, loadBookings, saveBookings } from "./lib/bookings";
+import { cancelBookingRemote, fetchMyBookings } from "./lib/bookings";
+import { requireClient, useAuth } from "./lib/auth";
 import { scrollToId } from "./lib/helpers";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -19,6 +20,9 @@ import { PropertyModal } from "./components/PropertyModal";
 import { BookingModal } from "./components/BookingModal";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PrivacyPolicy } from "./components/PrivacyPolicy";
+import { AuthModal } from "./components/AuthModal";
+import { AccountModal } from "./components/AccountModal";
+import { ProposalModal } from "./components/ProposalModal";
 import { ChatWidget } from "./components/ChatWidget";
 
 interface Toast {
@@ -29,7 +33,9 @@ interface Toast {
 }
 
 export default function App() {
-  const [bookings, setBookings] = useState<Booking[]>(() => loadBookings());
+  const { status: authStatus, client } = useAuth();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [proposalFor, setProposalFor] = useState<Property | null>(null);
   const [detail, setDetail] = useState<Property | null>(null);
   const [bookingFor, setBookingFor] = useState<Property | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -52,9 +58,33 @@ export default function App() {
     []
   );
 
+  // Visitas do cliente logado (vazio para visitantes)
+  const clientId = client?.id;
+  const refreshBookings = useCallback(async () => {
+    try {
+      setBookings(await fetchMyBookings());
+    } catch {
+      setBookings([]);
+    }
+  }, []);
+  useEffect(() => {
+    if (authStatus !== "client" || !clientId) {
+      const t = window.setTimeout(() => setBookings([]), 0);
+      return () => window.clearTimeout(t);
+    }
+    const t = window.setTimeout(() => void refreshBookings(), 0);
+    return () => window.clearTimeout(t);
+  }, [authStatus, clientId, refreshBookings]);
+
+  // Agendar e propor exigem cadastro: pede login e continua depois
   const openBooking = useCallback((p: Property) => {
     setDetail(null);
-    setBookingFor(p);
+    requireClient(() => setBookingFor(p), "Entre ou crie sua conta para agendar uma visita.");
+  }, []);
+
+  const openProposal = useCallback((p: Property) => {
+    setDetail(null);
+    requireClient(() => setProposalFor(p), "Entre ou crie sua conta para enviar uma proposta.");
   }, []);
 
   const openBookingById = useCallback(
@@ -66,11 +96,7 @@ export default function App() {
   );
 
   const addBooking = useCallback((b: Booking) => {
-    setBookings((prev) => {
-      const next = [...prev, b];
-      saveBookings(next);
-      return next;
-    });
+    setBookings((prev) => [...prev, b]);
   }, []);
 
   const cancelBooking = useCallback(
@@ -83,11 +109,7 @@ export default function App() {
         pushToast("Não foi possível cancelar", "Verifique sua conexão e tente novamente.", "error");
         return;
       }
-      setBookings((prev) => {
-        const next = prev.filter((b) => b.id !== id);
-        saveBookings(next);
-        return next;
-      });
+      setBookings((prev) => prev.filter((b) => b.id !== id));
       pushToast("Visita cancelada", "O horário foi liberado para outros clientes.", "error");
     },
     [bookings, pushToast]
@@ -124,7 +146,13 @@ export default function App() {
       <Footer />
 
       {/* Modais */}
-      <PropertyModal property={detail} onClose={() => setDetail(null)} onSchedule={openBooking} />
+      <PropertyModal
+        property={detail}
+        onClose={() => setDetail(null)}
+        onSchedule={openBooking}
+        onPropose={openProposal}
+      />
+      <ProposalModal property={proposalFor} onClose={() => setProposalFor(null)} />
       <BookingModal
         property={bookingFor}
         onClose={() => setBookingFor(null)}
@@ -133,6 +161,8 @@ export default function App() {
       />
       <AdminDashboard open={adminOpen} onClose={() => setAdminOpen(false)} />
       <PrivacyPolicy />
+      <AuthModal />
+      <AccountModal />
 
       {/* Toasts */}
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex flex-col items-center gap-2 px-4 sm:bottom-8">

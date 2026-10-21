@@ -8,9 +8,11 @@ import {
   MessageCircle,
   Phone,
   Settings2,
+  UserRound,
   X,
 } from "lucide-react";
 import { useSiteData } from "../lib/data";
+import { openAccount, openAuth, useAuth } from "../lib/auth";
 import { instagramUrl, scrollToId } from "../lib/helpers";
 
 const LINKS = [
@@ -30,6 +32,9 @@ export function Navbar({
   onOpenAdmin: () => void;
 }) {
   const { agent: AGENT, content } = useSiteData();
+  const { status } = useAuth();
+  const isClient = status === "client";
+  const accountAction = () => (isClient ? openAccount() : openAuth());
   const links = LINKS.filter((l) => l.id !== "depoimentos" || content.testimonials.length > 0);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -111,6 +116,14 @@ export function Navbar({
                   {bookingsCount}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={accountAction}
+              className="inline-flex items-center gap-2 rounded-full border border-gold-500/40 bg-gold-500/10 px-3.5 py-2 text-xs font-semibold text-gold-200 transition-all hover:border-gold-400 hover:text-gold-100"
+            >
+              <UserRound className="h-4 w-4" />
+              <span className="hidden sm:inline">{isClient ? "Minha conta" : "Entrar"}</span>
             </button>
 
             <button

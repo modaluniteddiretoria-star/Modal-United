@@ -1,6 +1,6 @@
-// Chat do site: inicia conversas (com Cloudflare Turnstile), recebe mensagens
-// dos visitantes e, se o corretor estiver offline, responde com um bot simples.
-// A leitura das mensagens pelo visitante é feita pelo RPC public.chat_poll.
+// Chat do site para clientes cadastrados: grava a mensagem na conversa do cliente
+// (cria na primeira vez) e, se o corretor estiver offline, responde com um bot simples.
+// O cliente lê as mensagens direto do banco (RLS) com atualização em tempo real.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set(["https://modal-united.vercel.app", "http://localhost:5173"]);
@@ -19,28 +19,6 @@ function json(body: unknown, status: number, origin: string | null) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors(origin), "Content-Type": "application/json" } });
 }
 
-async function sha256Hex(text: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function randomSecret(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function verifyTurnstile(token: string, ip: string | null): Promise<boolean> {
-  const secret = Deno.env.get("TURNSTILE_SECRET_KEY");
-  if (!secret || !token) return false;
-  const form = new FormData();
-  form.append("secret", secret);
-  form.append("response", token);
-  if (ip) form.append("remoteip", ip);
-  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
-  const data = (await res.json()) as { success: boolean };
-  return data.success === true;
-}
-
 const clean = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 // ---------------------------------------------------------------------------
@@ -55,7 +33,7 @@ interface Agent {
 }
 
 const normalize = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 function botReply(message: string, agent: Agent, isFirst: boolean): string | null {
   const t = normalize(message);
@@ -127,56 +105,55 @@ Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },
   });
+
+  // Cliente logado (token do Supabase Auth) e com cadastro ativo
+  const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const { data: auth } = await db.auth.getUser(token);
+  const user = auth?.user;
+  if (!user) return json({ error: "Entre na sua conta para usar o chat." }, 401, origin);
+  const { data: client } = await db.from("clients").select("name, status").eq("id", user.id).maybeSingle();
+  if (!client || client.status !== "active") {
+    return json({ error: "Seu cadastro não está ativo. Fale com o corretor pelo WhatsApp." }, 403, origin);
+  }
+
   const message = clean(body.message, 1000);
   if (!message) return json({ error: "Escreva uma mensagem." }, 400, origin);
 
-  // Nova conversa: exige captcha
-  if (body.action === "start") {
-    const ip = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-    if (!(await verifyTurnstile(clean(body.token, 2048), ip))) {
-      return json({ error: "Não conseguimos confirmar que você não é um robô. Tente de novo." }, 403, origin);
-    }
-    const secret = randomSecret();
-    const { data: conv, error } = await db
+  // Uma conversa por cliente (reaberta a cada nova mensagem)
+  let isFirst = false;
+  let { data: conv } = await db
+    .from("chat_conversations")
+    .select("id")
+    .eq("client_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!conv) {
+    const { data: created, error } = await db
       .from("chat_conversations")
-      .insert({ secret_hash: await sha256Hex(secret), visitor_name: clean(body.name, 80) || null })
+      .insert({ client_id: user.id, visitor_name: client.name })
       .select("id")
       .single();
-    if (error || !conv) {
+    if (error || !created) {
       console.error("chat start", error);
       return json({ error: "Não foi possível iniciar o chat agora." }, 500, origin);
     }
-    await db.from("chat_messages").insert({ conversation_id: conv.id, sender: "visitor", body: message });
-    await maybeBotReply(db, conv.id, message, true);
-    return json({ conversationId: conv.id, secret }, 200, origin);
+    conv = created;
+    isFirst = true;
   }
 
-  // Mensagem em conversa existente: exige o segredo
-  if (body.action === "send") {
-    const conversationId = clean(body.conversationId, 64);
-    const secret = clean(body.secret, 128);
-    const { data: conv } = await db
-      .from("chat_conversations")
-      .select("id, secret_hash")
-      .eq("id", conversationId)
-      .maybeSingle();
-    if (!conv || conv.secret_hash !== (await sha256Hex(secret))) {
-      return json({ error: "Conversa não encontrada." }, 404, origin);
-    }
-    const { count } = await db
-      .from("chat_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", conv.id)
-      .eq("sender", "visitor")
-      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
-    if ((count ?? 0) >= MAX_MESSAGES_PER_5_MIN) {
-      return json({ error: "Muitas mensagens seguidas. Aguarde um pouco." }, 429, origin);
-    }
-    await db.from("chat_conversations").update({ status: "open" }).eq("id", conv.id);
-    await db.from("chat_messages").insert({ conversation_id: conv.id, sender: "visitor", body: message });
-    await maybeBotReply(db, conv.id, message, false);
-    return json({ ok: true }, 200, origin);
+  const { count } = await db
+    .from("chat_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("conversation_id", conv.id)
+    .eq("sender", "visitor")
+    .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+  if ((count ?? 0) >= MAX_MESSAGES_PER_5_MIN) {
+    return json({ error: "Muitas mensagens seguidas. Aguarde um pouco." }, 429, origin);
   }
 
-  return json({ error: "Ação inválida" }, 400, origin);
+  await db.from("chat_conversations").update({ status: "open", visitor_name: client.name }).eq("id", conv.id);
+  await db.from("chat_messages").insert({ conversation_id: conv.id, sender: "visitor", body: message });
+  await maybeBotReply(db, conv.id, message, isFirst);
+  return json({ conversationId: conv.id }, 200, origin);
 });

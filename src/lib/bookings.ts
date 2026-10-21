@@ -1,27 +1,27 @@
 import type { Booking } from "./types";
 import { supabase } from "./supabase";
 
-// Visitas que este navegador agendou (para listar e cancelar).
-// A fonte da verdade é o Supabase; aqui ficam id + código e dados de exibição.
-const KEY = "modal-united-minhas-visitas-v2";
-
-export function loadBookings(): Booking[] {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Booking[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveBookings(list: Booking[]): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(list));
-  } catch {
-    // armazenamento indisponível — mantém em memória
-  }
+// Visitas do cliente logado (o RLS devolve só as dele)
+export async function fetchMyBookings(): Promise<Booking[]> {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id, code, property_id, visit_date, visit_time, name, phone, email, note, created_at")
+    .eq("status", "confirmed")
+    .order("visit_date")
+    .order("visit_time");
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    code: r.code,
+    propertyId: r.property_id ?? "",
+    date: r.visit_date,
+    time: r.visit_time,
+    name: r.name,
+    phone: r.phone,
+    email: r.email ?? undefined,
+    note: r.note ?? undefined,
+    createdAt: new Date(r.created_at).getTime(),
+  }));
 }
 
 // Horários já reservados de um imóvel, no formato "yyyy-mm-dd|HH:mm"
@@ -37,14 +37,9 @@ export async function fetchTakenSlots(propertyId: string, from: string, to: stri
   );
 }
 
-// Agendamento passa pela Edge Function create-booking, que valida o captcha
-export async function createBooking(
-  input: Omit<Booking, "id" | "code" | "createdAt">,
-  captchaToken: string
-): Promise<Booking> {
-  const { data, error } = await supabase.functions.invoke("create-booking", {
-    body: { ...input, token: captchaToken },
-  });
+// Agendamento do cliente logado (Edge Function create-booking; nome e WhatsApp vêm do cadastro)
+export async function createBooking(input: Omit<Booking, "id" | "code" | "createdAt">): Promise<Booking> {
+  const { data, error } = await supabase.functions.invoke("create-booking", { body: input });
   if (error) {
     let message = "Não foi possível agendar. Tente novamente.";
     const ctx = (error as { context?: Response }).context;

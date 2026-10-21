@@ -1,12 +1,7 @@
 import { supabase } from "./supabase";
 
-// Conversa do visitante: id + segredo ficam no navegador para retomar o chat.
-const KEY = "modal-united-chat-v1";
-
-export interface ChatSession {
-  conversationId: string;
-  secret: string;
-}
+// Chat do cliente logado: lê as mensagens direto do banco (o RLS devolve só as dele)
+// e recebe novas em tempo real; o envio passa pela Edge Function "chat" (que aciona o bot offline).
 
 export interface ChatMessage {
   id: number;
@@ -15,72 +10,43 @@ export interface ChatMessage {
   created_at: string;
 }
 
-export function loadChatSession(): ChatSession | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<ChatSession>;
-    return parsed.conversationId && parsed.secret ? (parsed as ChatSession) : null;
-  } catch {
-    return null;
-  }
+export async function fetchMyMessages(): Promise<ChatMessage[]> {
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("id, sender, body, created_at")
+    .order("id")
+    .limit(300);
+  if (error) throw error;
+  return (data ?? []) as ChatMessage[];
 }
 
-function saveChatSession(s: ChatSession) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    // armazenamento indisponível: a conversa vale só nesta aba
-  }
+export function subscribeMyMessages(onMessage: (m: ChatMessage) => void): () => void {
+  const channel = supabase
+    .channel(`client-chat-${crypto.randomUUID()}`)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages" }, (payload) =>
+      onMessage(payload.new as ChatMessage)
+    )
+    .subscribe();
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }
 
-export function clearChatSession() {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    // ignora
-  }
-}
-
-async function invokeChat(body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke("chat", { body });
+export async function sendChat(message: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("chat", { body: { message } });
   if (error) {
-    let message = "Não foi possível enviar. Tente novamente.";
+    let text = "Não foi possível enviar. Tente novamente.";
     const ctx = (error as { context?: Response }).context;
     if (ctx && typeof ctx.json === "function") {
       try {
         const payload = (await ctx.json()) as { error?: string };
-        if (payload.error) message = payload.error;
+        if (payload.error) text = payload.error;
       } catch {
         // resposta sem JSON
       }
     }
-    const err = new Error(message) as Error & { status?: number };
-    err.status = ctx?.status;
-    throw err;
+    throw new Error(text);
   }
-  return data as Record<string, unknown>;
-}
-
-export async function startChat(message: string, name: string, captchaToken: string): Promise<ChatSession> {
-  const data = await invokeChat({ action: "start", message, name, token: captchaToken });
-  const session = { conversationId: String(data.conversationId), secret: String(data.secret) };
-  saveChatSession(session);
-  return session;
-}
-
-export async function sendChat(session: ChatSession, message: string): Promise<void> {
-  await invokeChat({ action: "send", message, ...session });
-}
-
-export async function pollChat(session: ChatSession, afterId: number): Promise<ChatMessage[]> {
-  const { data, error } = await supabase.rpc("chat_poll", {
-    p_conversation: session.conversationId,
-    p_secret: session.secret,
-    p_after: afterId,
-  });
-  if (error) throw error;
-  return (data ?? []) as ChatMessage[];
 }
 
 export async function isAgentOnline(): Promise<boolean> {

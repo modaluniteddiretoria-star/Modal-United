@@ -13,6 +13,8 @@ import {
 import type { Property } from "../lib/types";
 import { saveSiteContent, saveSiteData, useSiteData } from "../lib/data";
 import { AdminContent } from "./AdminContent";
+import { AdminClients } from "./AdminClients";
+import { AdminProposals } from "./AdminProposals";
 import { PROPERTY_FOLDER, SMALL_SUFFIX, compressImage, extensionFor, smallImage } from "../lib/images";
 import { supabase } from "../lib/supabase";
 import { AdminBookings } from "./AdminBookings";
@@ -29,6 +31,8 @@ const TABS = [
   { id: "conteudo", label: "Conteúdo" },
   { id: "agendamentos", label: "Agendamentos" },
   { id: "conversas", label: "Conversas" },
+  { id: "propostas", label: "Propostas" },
+  { id: "clientes", label: "Clientes" },
 ] as const;
 
 const HEARTBEAT_MS = 30000;
@@ -551,6 +555,8 @@ export function AdminDashboard({
                 {tab === "conteudo" && <AdminContent content={content} onChange={setContent} />}
 
                 {tab === "agendamentos" && <AdminBookings />}
+                {tab === "propostas" && <AdminProposals />}
+                {tab === "clientes" && <AdminClients />}
 
                 {/* Fica montado para manter o tempo real e o contador de não lidas */}
                 <div className={tab === "conversas" ? "h-full" : "hidden"}>

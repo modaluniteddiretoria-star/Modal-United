@@ -5,6 +5,7 @@ import {
   BedDouble,
   CalendarDays,
   Check,
+  HandCoins,
   MapPin,
   MessageCircle,
   Ruler,
@@ -19,10 +20,12 @@ export function PropertyModal({
   property,
   onClose,
   onSchedule,
+  onPropose,
 }: {
   property: Property | null;
   onClose: () => void;
   onSchedule: (p: Property) => void;
+  onPropose: (p: Property) => void;
 }) {
   const { agent: AGENT } = useSiteData();
   useEffect(() => {
@@ -167,6 +170,13 @@ export function PropertyModal({
                 >
                   <CalendarDays className="h-4 w-4" />
                   Agendar visita a este imóvel
+                </button>
+                <button
+                  onClick={() => onPropose(property)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full border border-gold-500/60 px-6 py-4 text-sm font-bold text-gold-300 transition-colors hover:bg-gold-500/10"
+                >
+                  <HandCoins className="h-4 w-4" />
+                  Fazer proposta
                 </button>
                 <a
                   href={`https://wa.me/${AGENT.whatsapp}?text=${encodeURIComponent(

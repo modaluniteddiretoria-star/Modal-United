@@ -1,21 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageCircle, Send, X } from "lucide-react";
+import { LogIn, MessageCircle, Send, X } from "lucide-react";
 import { useSiteData } from "../lib/data";
-import {
-  type ChatMessage,
-  type ChatSession,
-  clearChatSession,
-  isAgentOnline,
-  loadChatSession,
-  pollChat,
-  sendChat,
-  startChat,
-} from "../lib/chat";
-import { Turnstile, type TurnstileHandle } from "./Turnstile";
+import { openAuth, useAuth } from "../lib/auth";
+import { type ChatMessage, fetchMyMessages, isAgentOnline, sendChat, subscribeMyMessages } from "../lib/chat";
 
-const POLL_OPEN_MS = 3000;
-const POLL_CLOSED_MS = 20000;
 const PRESENCE_MS = 30000;
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -30,52 +19,45 @@ export function ChatWidget() {
   const { agent } = useSiteData();
   const firstName = agent.name.split(" ")[0];
   const [open, setOpen] = useState(false);
-  const [session, setSession] = useState<ChatSession | null>(() => loadChatSession());
+  const { status, client } = useAuth();
+  const isClient = status === "client";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [seenId, setSeenId] = useState(0);
   const [online, setOnline] = useState(false);
   const [text, setText] = useState("");
-  const [name, setName] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [captchaFailed, setCaptchaFailed] = useState(false);
-  const captchaRef = useRef<TurnstileHandle>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const lastIdRef = useRef(0);
 
   const whatsappUrl = `https://wa.me/${agent.whatsapp}?text=${encodeURIComponent(
     `Olá ${firstName}! Vim pelo seu site e quero conversar sobre um imóvel.`
   )}`;
 
-  // Busca mensagens novas
-  const refresh = useCallback(async () => {
-    if (!session) return;
-    try {
-      const fresh = await pollChat(session, lastIdRef.current);
-      if (fresh.length > 0) {
-        lastIdRef.current = fresh[fresh.length - 1].id;
-        setMessages((prev) => [...prev, ...fresh.filter((m) => !prev.some((p) => p.id === m.id))]);
-      }
-    } catch {
-      // conversa inválida (ex.: apagada): recomeça do zero
-      clearChatSession();
-      lastIdRef.current = 0;
-      setSession(null);
-      setMessages([]);
-    }
-  }, [session]);
-
+  // Mensagens do cliente logado: carga inicial + tempo real
+  const clientId = client?.id;
   useEffect(() => {
-    if (!session) return;
-    const run = () => void refresh();
-    const first = window.setTimeout(run, 0);
-    const timer = window.setInterval(run, open ? POLL_OPEN_MS : POLL_CLOSED_MS);
+    if (!isClient || !clientId) return;
+    let active = true;
+    const merge = (incoming: ChatMessage[]) =>
+      setMessages((prev) => {
+        const ids = new Set(prev.map((m) => m.id));
+        return [...prev, ...incoming.filter((m) => !ids.has(m.id))].sort((a, b) => a.id - b.id);
+      });
+    fetchMyMessages()
+      .then((list) => {
+        if (!active) return;
+        merge(list);
+        // Ao entrar, o histórico já conta como lido
+        if (list.length > 0) setSeenId((s) => Math.max(s, list[list.length - 1].id));
+      })
+      .catch(() => {});
+    const unsubscribe = subscribeMyMessages((m) => active && merge([m]));
     return () => {
-      window.clearTimeout(first);
-      window.clearInterval(timer);
+      active = false;
+      unsubscribe();
+      setMessages([]);
     };
-  }, [session, open, refresh]);
+  }, [isClient, clientId]);
 
   // Status online do corretor
   useEffect(() => {
@@ -106,27 +88,12 @@ export function ChatWidget() {
     const body = text.trim();
     if (!body || sending) return;
     setError("");
-    if (!session && !captchaToken) {
-      setError(
-        captchaFailed
-          ? "A verificação anti-robô não carregou. Recarregue a página ou fale pelo WhatsApp."
-          : "Aguarde a verificação de segurança e tente de novo."
-      );
-      return;
-    }
     setSending(true);
     try {
-      if (session) {
-        await sendChat(session, body);
-      } else {
-        const created = await startChat(body, name.trim(), captchaToken!);
-        setSession(created);
-      }
+      await sendChat(body);
       setText("");
-      window.setTimeout(() => void refresh(), 300);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível enviar.");
-      if (!session) captchaRef.current?.reset();
     } finally {
       setSending(false);
     }
@@ -180,10 +147,34 @@ export function ChatWidget() {
               </button>
             </div>
 
+            {!isClient && (
+              <div className="flex-1 space-y-4 overflow-y-auto p-5 text-center">
+                <p className="text-sm leading-relaxed text-cream-200">
+                  Para conversar com o {firstName} por aqui, entre na sua conta ou crie uma em menos de 1 minuto.
+                </p>
+                <button
+                  onClick={() => openAuth("Entre ou crie sua conta para conversar no chat.")}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-500 px-5 py-3 text-sm font-bold text-ink-950 hover:bg-gold-400"
+                >
+                  <LogIn className="h-4 w-4" /> Entrar ou criar conta
+                </button>
+                <p className="text-xs text-cream-500">ou</p>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-bold text-ink-950 hover:bg-emerald-400"
+                >
+                  <WhatsAppIcon className="h-4 w-4" /> Falar pelo WhatsApp
+                </a>
+              </div>
+            )}
+
             {/* Mensagens */}
+            {isClient && (
             <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
               <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-ink-800 px-4 py-2.5 text-sm text-cream-100">
-                Olá! Sou {online ? `o ${firstName}` : `o assistente da ${agent.brand}`}. Como posso ajudar? Pode
+                Olá{client ? `, ${client.name.split(" ")[0]}` : ""}! Sou {online ? `o ${firstName}` : `o assistente da ${agent.brand}`}. Como posso ajudar? Pode
                 perguntar sobre imóveis, visitas, aluguel ou venda.
               </div>
               {messages.map((m) => (
@@ -210,8 +201,10 @@ export function ChatWidget() {
                 </div>
               ))}
             </div>
+            )}
 
             {/* Envio */}
+            {isClient && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -219,21 +212,6 @@ export function ChatWidget() {
               }}
               className="space-y-2 border-t border-cream-100/10 p-3"
             >
-              {!session && (
-                <>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value.slice(0, 80))}
-                    placeholder="Seu nome (opcional)"
-                    className="w-full rounded-xl border border-cream-100/12 bg-ink-800 px-3 py-2 text-sm text-cream-100 placeholder:text-cream-500/70 focus:border-gold-400/60 focus:outline-none"
-                  />
-                  <Turnstile
-                    ref={captchaRef}
-                    onToken={setCaptchaToken}
-                    onError={() => setCaptchaFailed(true)}
-                  />
-                </>
-              )}
               <div className="flex items-end gap-2">
                 <textarea
                   value={text}
@@ -260,12 +238,13 @@ export function ChatWidget() {
               </div>
               {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
               <p className="text-[10px] leading-snug text-cream-500">
-                Protegido pelo Cloudflare Turnstile.{" "}
+                Conversando como {client?.name}.{" "}
                 <a href="#privacidade" className="underline hover:text-gold-300">
                   Privacidade
                 </a>
               </p>
             </form>
+            )}
           </motion.section>
         )}
       </AnimatePresence>

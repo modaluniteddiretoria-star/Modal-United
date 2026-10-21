@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
 import type { Booking, Property } from "../lib/types";
 import { useSiteData } from "../lib/data";
 import { createBooking, fetchTakenSlots } from "../lib/bookings";
-import { Turnstile, type TurnstileHandle } from "./Turnstile";
+import { useAuth } from "../lib/auth";
 import {
   TIME_SLOTS,
   priceLabel,
@@ -52,10 +52,7 @@ export function BookingModal({
   const [taken, setTaken] = useState<Set<string>>(() => new Set());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [captchaFailed, setCaptchaFailed] = useState(false);
-  const captchaRef = useRef<TurnstileHandle>(null);
-  const handleCaptchaError = useCallback(() => setCaptchaFailed(true), []);
+  const { client } = useAuth();
 
   const days = useMemo(() => nextDays(21), []);
 
@@ -70,8 +67,10 @@ export function BookingModal({
     setErrors({});
     setTaken(new Set());
     setSubmitError("");
-    setCaptchaToken(null);
-    setCaptchaFailed(false);
+    // Dados do cadastro do cliente (o servidor usa os mesmos)
+    setName(client?.name ?? "");
+    setPhone(client ? maskPhone(client.phone) : "");
+    setEmail(client?.email ?? "");
   }
 
   useEffect(() => {
@@ -117,14 +116,6 @@ export function BookingModal({
 
   const submit = async () => {
     if (!property || !date || !time || submitting) return;
-    if (!captchaToken) {
-      setSubmitError(
-        captchaFailed
-          ? "Não foi possível carregar a verificação anti-robô. Recarregue a página ou fale pelo WhatsApp."
-          : "Aguarde a verificação de segurança terminar e tente de novo."
-      );
-      return;
-    }
     const errs: typeof errors = {};
     if (name.trim().length < 3) errs.name = "Informe seu nome completo.";
     if (phone.replace(/\D/g, "").length < 10)
@@ -143,13 +134,12 @@ export function BookingModal({
         phone,
         email: email.trim() || undefined,
         note: note.trim() || undefined,
-      }, captchaToken);
+      });
       onCreate(booking);
       setCreated(booking);
       setStep(3);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Não foi possível agendar. Tente novamente.");
-      captchaRef.current?.reset(); // tokens do Turnstile valem uma vez só
       void refreshTaken();
     } finally {
       setSubmitting(false);
@@ -350,6 +340,8 @@ export function BookingModal({
                       <input
                         id="bk-name"
                         value={name}
+                        readOnly
+                        title="Dados do seu cadastro (altere em Minha conta)"
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Ex.: Ana Carolina Souza"
                         className={`w-full rounded-2xl border bg-ink-800/70 px-4 py-3.5 text-sm text-cream-100 placeholder:text-cream-500/60 focus:outline-none focus:ring-2 ${
@@ -368,6 +360,8 @@ export function BookingModal({
                       <input
                         id="bk-phone"
                         value={phone}
+                        readOnly
+                        title="Dados do seu cadastro (altere em Minha conta)"
                         onChange={(e) => setPhone(maskPhone(e.target.value))}
                         placeholder="(11) 99999-0000"
                         inputMode="tel"
@@ -388,6 +382,8 @@ export function BookingModal({
                         id="bk-email"
                         type="email"
                         value={email}
+                        readOnly
+                        title="Dados do seu cadastro (altere em Minha conta)"
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="voce@email.com"
                         className="w-full rounded-2xl border border-cream-100/12 bg-ink-800/70 px-4 py-3.5 text-sm text-cream-100 placeholder:text-cream-500/60 focus:border-gold-400/60 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
@@ -504,7 +500,6 @@ export function BookingModal({
                   </button>
                 </div>
               )}
-              {step === 2 && <Turnstile ref={captchaRef} onToken={setCaptchaToken} onError={handleCaptchaError} />}
               {step === 2 && submitError && (
                 <p role="alert" className="mt-3 text-right text-sm text-red-300">
                   {submitError}
