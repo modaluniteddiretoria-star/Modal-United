@@ -6,22 +6,17 @@ import {
   BedDouble,
   CalendarDays,
   ChevronDown,
-  Instagram,
-  MessageCircle,
-  Phone,
   Ruler,
-  Star,
 } from "lucide-react";
 import { DEFAULT_PROPERTIES, useSiteData } from "../lib/data";
-import { creciLabel, instagramUrl, priceLabel, scrollToId } from "../lib/helpers";
+import { priceLabel, scrollToId } from "../lib/helpers";
 import { GoldButton } from "./Shared";
 import { smallImage } from "../lib/images";
 
 const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
-  const { agent: AGENT, properties: PROPERTIES, content } = useSiteData();
-  const creci = creciLabel(AGENT.creci);
+  const { properties: PROPERTIES, content } = useSiteData();
   const highlights = content.stats.slice(0, 3);
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -65,112 +60,12 @@ export function Hero({ onSchedule }: { onSchedule: (id: string) => void }) {
         style={{ opacity: contentFade }}
         className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 pb-24 pt-32 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8"
       >
-        {/* LEFT column — card do corretor no topo */}
         <div>
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.15, ease }}
-            style={{ y: cardY }}
-            className="w-full max-w-md"
-          >
-            {/* ===== Card do corretor (topo esquerdo) ===== */}
-            <div className="relative overflow-hidden rounded-3xl border border-cream-100/15 bg-ink-900/55 p-4 shadow-2xl backdrop-blur-xl sm:p-5">
-              <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gold-500/20 blur-2xl" />
-              <div className="flex items-center gap-4">
-                {/* Foto redonda */}
-                <div className="relative shrink-0">
-                  <div className="absolute -inset-1.5 rounded-full bg-gradient-to-tr from-gold-600 via-gold-400 to-gold-300 opacity-90" />
-                  <img
-                    src={AGENT.photo}
-                    alt={`Foto do corretor ${AGENT.name}`}
-                    className="relative h-20 w-20 rounded-full border-4 border-ink-900 object-cover sm:h-24 sm:w-24"
-                  />
-                  <span className="absolute bottom-1 right-1 z-10 h-4 w-4 rounded-full border-2 border-ink-900 bg-emerald-400">
-                    <span className="absolute inset-0 animate-ping rounded-full bg-emerald-400/70" />
-                  </span>
-                </div>
-
-                {/* Dados */}
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gold-400">
-                    Seu especialista em imóveis
-                  </p>
-                  <h3 className="truncate font-display text-xl font-semibold text-cream-50 sm:text-2xl">
-                    {AGENT.name}
-                  </h3>
-                  <p className="text-xs text-cream-300">
-                    {[AGENT.tagline, creci].filter(Boolean).join(" · ")}
-                  </p>
-                  {AGENT.reviews > 0 && AGENT.rating > 0 && (
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <div className="flex text-gold-400">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-3.5 w-3.5 ${i < Math.round(AGENT.rating) ? "fill-current" : "opacity-30"}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-cream-300">
-                        {AGENT.rating.toLocaleString("pt-BR")} · {AGENT.reviews} avaliações
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <a
-                  href={`https://wa.me/${AGENT.whatsapp}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-emerald-500/90 px-4 py-2.5 text-xs font-bold text-ink-950 transition-all hover:bg-emerald-400 hover:shadow-lg sm:text-sm"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  {AGENT.phone}
-                </a>
-                <a
-                  href={`tel:${AGENT.phone.replace(/\D/g, "")}`}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-cream-100/20 text-cream-100 transition-colors hover:border-gold-400/60 hover:text-gold-300"
-                  aria-label="Ligar agora"
-                >
-                  <Phone className="h-4 w-4" />
-                </a>
-                <a
-                  href={instagramUrl(AGENT.instagram)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="grid h-10 w-10 place-items-center rounded-full border border-cream-100/20 text-cream-100 transition-colors hover:border-gold-400/60 hover:text-gold-300"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-              </div>
-
-              {(AGENT.sold > 0 || AGENT.years > 0) && (
-                <div className="mt-3 flex items-center gap-6 border-t border-cream-100/10 pt-3 text-[11px] text-cream-300">
-                  {AGENT.sold > 0 && (
-                    <span>
-                      · <strong className="text-cream-100">{AGENT.sold}+</strong> vendas
-                    </span>
-                  )}
-                  {AGENT.years > 0 && (
-                    <span>
-                      · <strong className="text-cream-100">{AGENT.years}</strong> anos de mercado
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          </motion.div>
-
           {/* Headline */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.35, ease }}
-            className="mt-10"
+            transition={{ duration: 0.9, delay: 0.2, ease }}
           >
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-300">
               <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-gold-400" />
