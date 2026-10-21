@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
@@ -105,13 +105,26 @@ export function AdminDashboard({
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Alterações feitas no painel e ainda não salvas no site
+  const dirty = useMemo(
+    () =>
+      JSON.stringify({ profile, properties, content }) !==
+      JSON.stringify({ profile: AGENT, properties: PROPERTIES, content: CONTENT }),
+    [profile, properties, content, AGENT, PROPERTIES, CONTENT]
+  );
+
+  const requestClose = useCallback(() => {
+    if (dirty && !window.confirm("Você tem alterações não salvas. Sair sem salvar?")) return;
+    onClose();
+  }, [dirty, onClose]);
+
   useEffect(() => {
     const esc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") requestClose();
     };
     if (open) window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
-  }, [open, onClose]);
+  }, [open, requestClose]);
 
   const totalProperties = useMemo(() => properties.length, [properties]);
 
@@ -222,6 +235,7 @@ export function AdminDashboard({
   };
 
   const handleLogout = async () => {
+    if (dirty && !window.confirm("Você tem alterações não salvas. Sair sem salvar?")) return;
     await supabase.auth.signOut();
     setAuthenticated(false);
     onClose();
@@ -319,9 +333,9 @@ export function AdminDashboard({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ duration: 0.22 }}
-            className="relative h-[92vh] w-[min(1100px,94vw)] overflow-hidden rounded-[28px] border border-cream-100/10 bg-ink-900 shadow-2xl"
+            className="relative flex h-[92dvh] w-[min(1100px,94vw)] flex-col overflow-hidden rounded-[28px] border border-cream-100/10 bg-ink-900 shadow-2xl"
           >
-            <div className="flex items-center justify-between border-b border-cream-100/10 bg-ink-900/90 px-5 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-cream-100/10 bg-ink-900/90 px-5 py-4">
               <div className="flex items-center gap-3">
                 <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-500 text-ink-950">
                   <Settings2 className="h-5 w-5" />
@@ -335,7 +349,7 @@ export function AdminDashboard({
               </div>
 
               <button
-                onClick={onClose}
+                onClick={requestClose}
                 className="grid h-10 w-10 place-items-center rounded-full border border-cream-100/15 text-cream-100 transition-colors hover:border-gold-400/60 hover:text-gold-300"
                 aria-label="Fechar painel"
               >
@@ -343,8 +357,8 @@ export function AdminDashboard({
               </button>
             </div>
 
-            <div className="flex h-[calc(100%-89px)] flex-col lg:flex-row">
-              <aside className="border-b border-cream-100/10 bg-ink-950/50 p-4 lg:w-[250px] lg:border-b-0 lg:border-r">
+            <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+              <aside className="shrink-0 border-b border-cream-100/10 bg-ink-950/50 p-4 lg:w-[250px] lg:border-b-0 lg:border-r">
                 <nav className="flex gap-2 overflow-x-auto lg:flex-col">
                   {TABS.map((item) => (
                     <button
@@ -377,7 +391,7 @@ export function AdminDashboard({
                 </div>
               </aside>
 
-              <div className="flex-1 overflow-y-auto p-5 sm:p-6">
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
                 {tab === "perfil" && (
                   <div className="space-y-6">
                     <div className="flex flex-wrap items-center gap-6 rounded-3xl border border-cream-100/10 bg-ink-950/40 p-4">
@@ -706,7 +720,7 @@ export function AdminDashboard({
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-cream-100/10 bg-ink-950/60 px-5 py-4">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-cream-100/10 bg-ink-950/60 px-5 py-4">
               <button
                 onClick={() => void handleLogout()}
                 className="inline-flex items-center gap-2 rounded-full border border-cream-100/15 px-4 py-2.5 text-sm font-semibold text-cream-100 transition hover:border-gold-400/60 hover:text-gold-300"
@@ -715,23 +729,28 @@ export function AdminDashboard({
                 Sair
               </button>
 
-              {(saveError || uploading) && (
-                <p role="status" className={`flex-1 px-4 text-sm ${saveError ? "text-red-300" : "text-cream-300"}`}>
-                  {saveError || "Enviando imagem..."}
+              {(saveError || uploading || dirty) && (
+                <p
+                  role="status"
+                  className={`flex-1 px-2 text-sm ${saveError ? "text-red-300" : uploading ? "text-cream-300" : "text-gold-300"}`}
+                >
+                  {saveError || (uploading ? "Enviando imagem..." : "Alterações não salvas: clique em Salvar para publicar no site.")}
                 </p>
               )}
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={onClose}
+                  onClick={requestClose}
                   className="rounded-full border border-cream-100/15 px-5 py-2.5 text-sm font-semibold text-cream-100 transition hover:border-gold-400/60 hover:text-gold-300"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => void saveChanges()}
-                  disabled={saving || uploading}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-5 py-2.5 text-sm font-bold text-ink-950 transition hover:bg-gold-400 disabled:cursor-wait disabled:opacity-60"
+                  disabled={saving || uploading || !dirty}
+                  className={`inline-flex items-center gap-2 rounded-full bg-gold-500 px-5 py-2.5 text-sm font-bold text-ink-950 transition hover:bg-gold-400 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    dirty && !saving ? "ring-2 ring-gold-300/60 ring-offset-2 ring-offset-ink-950" : ""
+                  }`}
                 >
                   <Check className="h-4 w-4" />
                   {saving ? "Salvando..." : "Salvar alterações"}
