@@ -104,19 +104,21 @@ export function Navbar({
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Meus agendamentos */}
-            <button
-              onClick={onOpenBookings}
-              className="relative flex items-center gap-2 rounded-full border border-cream-100/15 bg-cream-100/5 px-3.5 py-2 text-xs font-semibold text-cream-100 backdrop-blur transition-all hover:border-gold-400/60 hover:text-gold-300 sm:px-4 sm:text-sm"
-            >
-              <CalendarDays className="h-4 w-4" />
-              <span className="hidden sm:inline">Meus agendamentos</span>
-              {bookingsCount > 0 && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-ink-950">
-                  {bookingsCount}
-                </span>
-              )}
-            </button>
+            {/* Meus agendamentos (só para cliente logado) */}
+            {isClient && (
+              <button
+                onClick={onOpenBookings}
+                className="relative flex items-center gap-2 rounded-full border border-cream-100/15 bg-cream-100/5 px-3.5 py-2 text-xs font-semibold text-cream-100 backdrop-blur transition-all hover:border-gold-400/60 hover:text-gold-300 sm:px-4 sm:text-sm"
+              >
+                <CalendarDays className="h-4 w-4" />
+                <span className="hidden sm:inline">Meus agendamentos</span>
+                {bookingsCount > 0 && (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-gold-500 px-1 text-[10px] font-bold text-ink-950">
+                    {bookingsCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             <button
               onClick={accountAction}

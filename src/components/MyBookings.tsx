@@ -40,7 +40,7 @@ export function MyBookings({
             Meus <span className="text-gold-300">agendamentos</span>
           </>
         }
-        description="Todas as suas visitas confirmadas em um só lugar. Os dados ficam salvos neste dispositivo — apresente o código da visita no encontro com o corretor."
+        description="Todas as suas visitas confirmadas em um só lugar. Elas ficam salvas na sua conta — apresente o código da visita no encontro com o corretor."
       />
 
       <Reveal delay={0.1} className="mt-12">

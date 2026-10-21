@@ -8,10 +8,12 @@ import {
   Phone,
 } from "lucide-react";
 import { useSiteData } from "../lib/data";
+import { useAuth } from "../lib/auth";
 import { creciLabel, instagramUrl, scrollToId } from "../lib/helpers";
 
 export function Footer() {
   const { agent: AGENT, content } = useSiteData();
+  const isClient = useAuth().status === "client";
   const creci = creciLabel(AGENT.creci);
   return (
     <footer id="contato" className="scroll-mt-24 border-t border-cream-100/10 bg-ink-950">
@@ -70,7 +72,7 @@ export function Footer() {
               ["Imóveis", "imoveis"],
               ["Sobre o corretor", "sobre"],
               ...(content.testimonials.length > 0 ? [["Depoimentos", "depoimentos"]] : []),
-              ["Meus agendamentos", "agendamentos"],
+              ...(isClient ? [["Meus agendamentos", "agendamentos"]] : []),
             ].map(([label, id]) => (
               <li key={id}>
                 <button

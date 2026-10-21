@@ -135,11 +135,13 @@ export default function App() {
         <Stats />
         <About />
         <Testimonials />
-        <MyBookings
-          bookings={bookings}
-          onCancel={cancelBooking}
-          onExplore={() => scrollToId("imoveis")}
-        />
+        {authStatus === "client" && (
+          <MyBookings
+            bookings={bookings}
+            onCancel={cancelBooking}
+            onExplore={() => scrollToId("imoveis")}
+          />
+        )}
         <CtaBanner />
       </main>
 
