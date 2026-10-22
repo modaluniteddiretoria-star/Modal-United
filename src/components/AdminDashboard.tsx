@@ -62,6 +62,21 @@ export function AdminDashboard({
   const [saveError, setSaveError] = useState("");
   const [unreadChats, setUnreadChats] = useState(0);
 
+  // Dados do site chegaram depois (ex.: painel aberto direto em /adminmodal): atualiza o formulário
+  // se ainda não foi editado, para nunca salvar os valores de exemplo por cima dos reais
+  const [base, setBase] = useState({ AGENT, PROPERTIES, CONTENT });
+  if (base.AGENT !== AGENT || base.PROPERTIES !== PROPERTIES || base.CONTENT !== CONTENT) {
+    const untouched =
+      JSON.stringify({ profile, properties, content }) ===
+      JSON.stringify({ profile: base.AGENT, properties: base.PROPERTIES, content: base.CONTENT });
+    setBase({ AGENT, PROPERTIES, CONTENT });
+    if (untouched) {
+      setProfile({ ...AGENT });
+      setProperties(structuredClone(PROPERTIES));
+      setContent(structuredClone(CONTENT));
+    }
+  }
+
   // Recarrega os dados atuais sempre que o painel é aberto
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {

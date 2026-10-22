@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowUpRight,
@@ -15,6 +15,7 @@ import { useSiteData } from "../lib/data";
 import { priceLabel } from "../lib/helpers";
 import { Reveal, SectionHeading } from "./Shared";
 import { smallImage } from "../lib/images";
+import { SellModal } from "./SellModal";
 
 const FILTERS: { label: string; value: PropertyCategory | "todos" }[] = [
   { label: "Todos", value: "todos" },
@@ -161,9 +162,8 @@ export function Properties({
     (p) => (filter === "todos" || p.category === filter) && (deal === "todos" || p.transaction === deal)
   );
 
-  const sellUrl = `https://wa.me/${agent.whatsapp}?text=${encodeURIComponent(
-    `Olá ${agent.name}! Tenho um imóvel e quero vender ou anunciar com a ${agent.brand}.`
-  )}`;
+  const [sellOpen, setSellOpen] = useState(false);
+  const closeSell = useCallback(() => setSellOpen(false), []);
 
   return (
     <section id="imoveis" className="relative mx-auto max-w-7xl scroll-mt-24 px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
@@ -213,16 +213,15 @@ export function Properties({
             );
           })}
         </div>
-        <a
-          href={sellUrl}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          onClick={() => setSellOpen(true)}
           className="inline-flex items-center gap-2 rounded-full border border-gold-500/50 px-5 py-2.5 text-sm font-bold text-gold-300 transition-colors hover:border-gold-400 hover:bg-gold-500/10"
         >
           <Tag className="h-4 w-4" />
           Quero vender meu imóvel
-        </a>
+        </button>
       </Reveal>
+      <SellModal open={sellOpen} onClose={closeSell} />
 
       {/* Filtros */}
       <Reveal delay={0.15} className="mt-5">

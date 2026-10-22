@@ -7,7 +7,6 @@ import {
   Menu,
   MessageCircle,
   Phone,
-  Settings2,
   UserRound,
   X,
 } from "lucide-react";
@@ -25,11 +24,9 @@ const LINKS = [
 export function Navbar({
   bookingsCount,
   onOpenBookings,
-  onOpenAdmin,
 }: {
   bookingsCount: number;
   onOpenBookings: () => void;
-  onOpenAdmin: () => void;
 }) {
   const { agent: AGENT, content } = useSiteData();
   const { status } = useAuth();
@@ -128,13 +125,6 @@ export function Navbar({
               <span className="hidden sm:inline">{isClient ? "Minha conta" : "Entrar"}</span>
             </button>
 
-            <button
-              onClick={onOpenAdmin}
-              className="hidden items-center gap-2 rounded-full border border-cream-100/15 bg-cream-100/5 px-3.5 py-2 text-xs font-semibold text-cream-100 transition-all hover:border-gold-400/60 hover:text-gold-300 md:inline-flex"
-            >
-              <Settings2 className="h-4 w-4" />
-              Painel
-            </button>
 
             <a
               href={`https://wa.me/${AGENT.whatsapp}`}
@@ -215,19 +205,6 @@ export function Navbar({
                       {bookingsCount}
                     </span>
                   )}
-                </motion.button>
-                <motion.button
-                  initial={{ opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.38 }}
-                  onClick={() => {
-                    setOpen(false);
-                    onOpenAdmin();
-                  }}
-                  className="flex items-center justify-between rounded-2xl px-4 py-4 text-left font-display text-2xl text-cream-100 hover:bg-cream-100/5 hover:text-gold-300"
-                >
-                  Painel
-                  <Settings2 className="h-5 w-5" />
                 </motion.button>
               </nav>
 

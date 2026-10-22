@@ -19,6 +19,8 @@ import { Footer } from "./components/Footer";
 import { PropertyModal } from "./components/PropertyModal";
 import { BookingModal } from "./components/BookingModal";
 import { AdminDashboard } from "./components/AdminDashboard";
+
+const ADMIN_PATH = "/adminmodal";
 import { PrivacyPolicy } from "./components/PrivacyPolicy";
 import { AuthModal } from "./components/AuthModal";
 import { AccountModal } from "./components/AccountModal";
@@ -39,7 +41,17 @@ export default function App() {
   const [detail, setDetail] = useState<Property | null>(null);
   const [bookingFor, setBookingFor] = useState<Property | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [adminOpen, setAdminOpen] = useState(false);
+  // Painel só pelo endereço secreto /adminmodal (não há botão na tela do cliente)
+  const [adminOpen, setAdminOpen] = useState(() => window.location.pathname === ADMIN_PATH);
+  useEffect(() => {
+    const sync = () => setAdminOpen(window.location.pathname === ADMIN_PATH);
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+  const closeAdmin = useCallback(() => {
+    setAdminOpen(false);
+    if (window.location.pathname === ADMIN_PATH) window.history.replaceState(null, "", "/");
+  }, []);
 
   const { properties: PROPERTIES } = useSiteData();
 
@@ -125,7 +137,6 @@ export default function App() {
       <Navbar
         bookingsCount={bookings.length}
         onOpenBookings={goBookings}
-        onOpenAdmin={() => setAdminOpen(true)}
       />
 
       <main className="relative z-10">
@@ -161,7 +172,7 @@ export default function App() {
         onCreate={addBooking}
         onViewAll={goBookings}
       />
-      <AdminDashboard open={adminOpen} onClose={() => setAdminOpen(false)} />
+      <AdminDashboard open={adminOpen} onClose={closeAdmin} />
       <PrivacyPolicy />
       <AuthModal />
       <AccountModal />
