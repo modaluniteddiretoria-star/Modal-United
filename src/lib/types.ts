@@ -7,6 +7,9 @@ export type PropertyCategory =
 
 export type PropertyTransaction = "venda" | "aluguel";
 
+// ativo aparece no site; pausado e vendido ficam só no painel
+export type PropertyStatus = "ativo" | "pausado" | "vendido";
+
 export interface Property {
   id: string;
   title: string;
@@ -25,6 +28,8 @@ export interface Property {
   badge?: "Novo" | "Exclusivo" | "Destaque";
   description: string;
   features: string[];
+  status?: PropertyStatus; // ausente = ativo
+  sortOrder?: number; // menor aparece primeiro
 }
 
 export interface Booking {

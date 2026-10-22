@@ -1,25 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Check,
-  ImagePlus,
-  LogOut,
-  Plus,
-  Settings2,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
-import type { Property } from "../lib/types";
+import { Check, LogOut, Settings2, Upload, X } from "lucide-react";
 import { saveSiteContent, saveSiteData, useSiteData } from "../lib/data";
 import { AdminContent } from "./AdminContent";
 import { AdminClients } from "./AdminClients";
 import { AdminProposals } from "./AdminProposals";
-import { PROPERTY_FOLDER, SMALL_SUFFIX, compressImage, extensionFor, smallImage } from "../lib/images";
+import { PROPERTY_FOLDER, SMALL_SUFFIX, compressImage, extensionFor } from "../lib/images";
 import { supabase } from "../lib/supabase";
 import { AdminBookings } from "./AdminBookings";
 import { AdminChat } from "./AdminChat";
-import { AdminGallery } from "./AdminGallery";
+import { AdminProperties } from "./AdminProperties";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // limite do bucket (após compressão)
 const MAX_INPUT_BYTES = 20 * 1024 * 1024; // arquivo original escolhido
@@ -37,10 +27,6 @@ const TABS = [
 
 const HEARTBEAT_MS = 30000;
 
-function makeId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
 export function AdminDashboard({
   open,
   onClose,
@@ -48,10 +34,9 @@ export function AdminDashboard({
   open: boolean;
   onClose: () => void;
 }) {
-  const { agent: AGENT, properties: PROPERTIES, content: CONTENT } = useSiteData();
+  const { agent: AGENT, allProperties, content: CONTENT } = useSiteData();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("perfil");
   const [profile, setProfile] = useState(() => ({ ...AGENT }));
-  const [properties, setProperties] = useState<Property[]>(() => structuredClone(PROPERTIES));
   const [content, setContent] = useState(() => structuredClone(CONTENT));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,15 +49,13 @@ export function AdminDashboard({
 
   // Dados do site chegaram depois (ex.: painel aberto direto em /adminmodal): atualiza o formulário
   // se ainda não foi editado, para nunca salvar os valores de exemplo por cima dos reais
-  const [base, setBase] = useState({ AGENT, PROPERTIES, CONTENT });
-  if (base.AGENT !== AGENT || base.PROPERTIES !== PROPERTIES || base.CONTENT !== CONTENT) {
+  const [base, setBase] = useState({ AGENT, CONTENT });
+  if (base.AGENT !== AGENT || base.CONTENT !== CONTENT) {
     const untouched =
-      JSON.stringify({ profile, properties, content }) ===
-      JSON.stringify({ profile: base.AGENT, properties: base.PROPERTIES, content: base.CONTENT });
-    setBase({ AGENT, PROPERTIES, CONTENT });
+      JSON.stringify({ profile, content }) === JSON.stringify({ profile: base.AGENT, content: base.CONTENT });
+    setBase({ AGENT, CONTENT });
     if (untouched) {
       setProfile({ ...AGENT });
-      setProperties(structuredClone(PROPERTIES));
       setContent(structuredClone(CONTENT));
     }
   }
@@ -83,7 +66,6 @@ export function AdminDashboard({
     setWasOpen(open);
     if (open) {
       setProfile({ ...AGENT });
-      setProperties(structuredClone(PROPERTIES));
       setContent(structuredClone(CONTENT));
       setSaveError("");
     }
@@ -127,9 +109,8 @@ export function AdminDashboard({
   // Alterações feitas no painel e ainda não salvas no site
   const dirty = useMemo(
     () =>
-      JSON.stringify({ profile, properties, content }) !==
-      JSON.stringify({ profile: AGENT, properties: PROPERTIES, content: CONTENT }),
-    [profile, properties, content, AGENT, PROPERTIES, CONTENT]
+      JSON.stringify({ profile, content }) !== JSON.stringify({ profile: AGENT, content: CONTENT }),
+    [profile, content, AGENT, CONTENT]
   );
 
   const requestClose = useCallback(() => {
@@ -145,42 +126,11 @@ export function AdminDashboard({
     return () => window.removeEventListener("keydown", esc);
   }, [open, requestClose]);
 
-  const totalProperties = useMemo(() => properties.length, [properties]);
 
   const updateProfile = <K extends keyof typeof profile>(key: K, value: (typeof profile)[K]) => {
     setProfile((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateProperty = (id: string, patch: Partial<Property>) => {
-    setProperties((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-  };
-
-  const addProperty = () => {
-    setProperties((prev) => [
-      ...prev,
-      {
-        id: makeId("property"),
-        title: "Novo imóvel",
-        typeLabel: "Apartamento",
-        category: "apartamento",
-        transaction: "venda",
-        price: 0,
-        location: "Centro",
-        city: "São Paulo",
-        beds: 2,
-        baths: 2,
-        area: 80,
-        image: "/images/prop-1.jpg",
-        gallery: [],
-        description: "Descreva o imóvel aqui.",
-        features: ["Feature 1", "Feature 2"],
-      },
-    ]);
-  };
-
-  const removeProperty = (id: string) => {
-    setProperties((prev) => prev.filter((item) => item.id !== id));
-  };
 
   // Envia uma imagem ao Storage e devolve a URL pública (ou null em caso de erro)
   // Comprime no navegador (WebP) e envia ao Storage; devolve a URL pública (ou null em caso de erro).
@@ -230,19 +180,17 @@ export function AdminDashboard({
     }
   };
 
-  const handlePhotoUpload = async (file: File | null, target: "profile" | "property", id?: string) => {
+  const handleProfilePhoto = async (file: File | null) => {
     if (!file) return;
-    const url = await uploadImage(file, target);
-    if (!url) return;
-    if (target === "profile") setProfile((prev) => ({ ...prev, photo: url }));
-    if (target === "property" && id) updateProperty(id, { image: url });
+    const url = await uploadImage(file, "profile");
+    if (url) setProfile((prev) => ({ ...prev, photo: url }));
   };
 
   const saveChanges = async () => {
     setSaving(true);
     setSaveError("");
     try {
-      await saveSiteData(profile, properties);
+      await saveSiteData(profile);
       await saveSiteContent(content);
       onClose();
     } catch (err) {
@@ -404,7 +352,7 @@ export function AdminDashboard({
                     Resumo
                   </p>
                   <div className="mt-3 space-y-2 text-sm text-cream-300">
-                    <p>Imóveis: {totalProperties}</p>
+                    <p>Imóveis: {allProperties.length}</p>
                     <p>WhatsApp: {profile.phone}</p>
                   </div>
                 </div>
@@ -427,7 +375,7 @@ export function AdminDashboard({
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             className="hidden"
-                            onChange={(e) => void handlePhotoUpload(e.target.files?.[0] ?? null, "profile")}
+                            onChange={(e) => void handleProfilePhoto(e.target.files?.[0] ?? null)}
                           />
                         </label>
                         <input
@@ -579,164 +527,7 @@ export function AdminDashboard({
                 </div>
 
                 {tab === "imoveis" && (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-display text-2xl text-cream-50">Imóveis em destaque</h4>
-                      <button
-                        onClick={addProperty}
-                        className="inline-flex items-center gap-2 rounded-full bg-gold-500 px-4 py-2.5 text-sm font-bold text-ink-950 transition hover:bg-gold-400"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Novo imóvel
-                      </button>
-                    </div>
-
-                    <div className="space-y-5">
-                      {properties.map((property) => (
-                        <div
-                          key={property.id}
-                          className="rounded-3xl border border-cream-100/10 bg-ink-950/40 p-4"
-                        >
-                          <div className="flex flex-col gap-4 md:flex-row">
-                            <div className="h-28 w-full overflow-hidden rounded-2xl border border-cream-100/10 bg-ink-900 md:w-44">
-                              <img src={smallImage(property.image)} alt={property.title} className="h-full w-full object-cover" />
-                            </div>
-
-                            <div className="grid flex-1 gap-3 md:grid-cols-2">
-                              <label className="space-y-2 text-sm text-cream-300 md:col-span-2">
-                                <span>Título</span>
-                                <input
-                                  value={property.title}
-                                  onChange={(e) => updateProperty(property.id, { title: e.target.value })}
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>Tipo</span>
-                                <input
-                                  value={property.typeLabel}
-                                  onChange={(e) => updateProperty(property.id, { typeLabel: e.target.value })}
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>Negócio</span>
-                                <select
-                                  value={property.transaction}
-                                  onChange={(e) =>
-                                    updateProperty(property.id, {
-                                      transaction: e.target.value as Property["transaction"],
-                                    })
-                                  }
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                >
-                                  <option value="venda">Venda</option>
-                                  <option value="aluguel">Aluguel</option>
-                                </select>
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>Categoria (usada nos filtros)</span>
-                                <select
-                                  value={property.category}
-                                  onChange={(e) =>
-                                    updateProperty(property.id, {
-                                      category: e.target.value as Property["category"],
-                                    })
-                                  }
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                >
-                                  <option value="casa">Casa</option>
-                                  <option value="apartamento">Apartamento</option>
-                                  <option value="cobertura">Cobertura</option>
-                                  <option value="loft">Loft</option>
-                                  <option value="studio">Studio</option>
-                                </select>
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>{property.transaction === "aluguel" ? "Aluguel mensal (R$)" : "Preço (R$)"}</span>
-                                <input
-                                  type="number"
-                                  value={property.price}
-                                  onChange={(e) =>
-                                    updateProperty(property.id, { price: Number(e.target.value || 0) })
-                                  }
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>Localização</span>
-                                <input
-                                  value={property.location}
-                                  onChange={(e) => updateProperty(property.id, { location: e.target.value })}
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>Cidade</span>
-                                <input
-                                  value={property.city}
-                                  onChange={(e) => updateProperty(property.id, { city: e.target.value })}
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300">
-                                <span>Imagem URL</span>
-                                <input
-                                  value={property.image}
-                                  onChange={(e) => updateProperty(property.id, { image: e.target.value })}
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-
-                              <label className="space-y-2 text-sm text-cream-300 md:col-span-2">
-                                <span>Descrição</span>
-                                <textarea
-                                  value={property.description}
-                                  rows={3}
-                                  onChange={(e) => updateProperty(property.id, { description: e.target.value })}
-                                  className="w-full rounded-2xl border border-cream-100/12 bg-ink-800 px-4 py-3 text-cream-100 outline-none focus:border-gold-400/60"
-                                />
-                              </label>
-                            </div>
-                          </div>
-
-                          <AdminGallery
-                            cover={property.image}
-                            gallery={property.gallery}
-                            onChange={(next) => updateProperty(property.id, next)}
-                            upload={(file) => uploadImage(file, "property")}
-                          />
-
-                          <div className="mt-4 flex items-center justify-between border-t border-cream-100/10 pt-4">
-                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-cream-100/15 px-4 py-2 text-sm font-semibold text-cream-200 transition hover:border-gold-400/60 hover:text-gold-300">
-                              <ImagePlus className="h-4 w-4" />
-                              Trocar capa
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                className="hidden"
-                                onChange={(e) => void handlePhotoUpload(e.target.files?.[0] ?? null, "property", property.id)}
-                              />
-                            </label>
-                            <button
-                              onClick={() => removeProperty(property.id)}
-                              className="inline-flex items-center gap-2 rounded-full border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:border-red-400 hover:text-red-100"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Remover
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <AdminProperties upload={(file) => uploadImage(file, "property")} />
                 )}
               </div>
             </div>

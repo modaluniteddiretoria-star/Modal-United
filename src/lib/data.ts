@@ -240,7 +240,8 @@ export type Agent = typeof DEFAULT_AGENT;
 
 export interface SiteData {
   agent: Agent;
-  properties: Property[];
+  properties: Property[]; // só os ativos (o que o site mostra)
+  allProperties: Property[]; // todos, inclusive pausados e vendidos (painel)
   content: SiteContent;
   status: "loading" | "ready" | "error";
 }
@@ -251,6 +252,7 @@ export interface SiteData {
 let state: SiteData = {
   agent: { ...DEFAULT_AGENT },
   properties: [...DEFAULT_PROPERTIES],
+  allProperties: [...DEFAULT_PROPERTIES],
   content: DEFAULT_CONTENT,
   status: "loading",
 };
@@ -295,6 +297,7 @@ interface PropertyRow {
   badge: Property["badge"] | null;
   description: string;
   features: string[];
+  status: NonNullable<Property["status"]>;
   sort_order: number;
 }
 
@@ -317,10 +320,12 @@ function fromRow(r: PropertyRow): Property {
     badge: r.badge ?? undefined,
     description: r.description,
     features: r.features ?? [],
+    status: r.status ?? "ativo",
+    sortOrder: r.sort_order,
   };
 }
 
-function toRow(p: Property, index: number): PropertyRow {
+function toRow(p: Property): PropertyRow {
   return {
     id: p.id,
     title: p.title.trim(),
@@ -339,7 +344,8 @@ function toRow(p: Property, index: number): PropertyRow {
     badge: p.badge ?? null,
     description: p.description.trim(),
     features: p.features.map((f) => f.trim()).filter(Boolean),
-    sort_order: index,
+    status: p.status ?? "ativo",
+    sort_order: p.sortOrder ?? 0,
   };
 }
 
@@ -349,7 +355,7 @@ function toRow(p: Property, index: number): PropertyRow {
 export async function loadSiteData(): Promise<void> {
   const [agentRes, propsRes, contentRes] = await Promise.all([
     supabase.from("agent_profile").select("*").eq("id", 1).maybeSingle(),
-    supabase.from("properties").select("*").order("sort_order").order("created_at"),
+    supabase.from("properties").select("*").order("sort_order").order("created_at", { ascending: false }),
     supabase.from("site_content").select("data").eq("id", 1).maybeSingle(),
   ]);
 
@@ -382,7 +388,7 @@ export async function loadSiteData(): Promise<void> {
 
   setState({
     agent,
-    properties: (propsRes.data as PropertyRow[]).map(fromRow),
+    ...withProperties((propsRes.data as PropertyRow[]).map(fromRow)),
     content: normalizeContent((contentRes.data as { data: unknown } | null)?.data),
     status: "ready",
   });
@@ -415,25 +421,43 @@ export async function saveSiteContent(content: SiteContent): Promise<void> {
   setState({ content: normalizeContent(clean) });
 }
 
-// Salva perfil e imóveis (requer sessão de admin; o RLS bloqueia os demais)
-export async function saveSiteData(agent: Agent, properties: Property[]): Promise<void> {
-  const { error: agentError } = await supabase
+// Lista completa ordenada + só os ativos para o site
+function withProperties(all: Property[]): Pick<SiteData, "properties" | "allProperties"> {
+  const sorted = [...all].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  return { allProperties: sorted, properties: sorted.filter((p) => (p.status ?? "ativo") === "ativo") };
+}
+
+// Salva o perfil do corretor (requer sessão de admin; o RLS bloqueia os demais)
+export async function saveSiteData(agent: Agent): Promise<void> {
+  const { error } = await supabase
     .from("agent_profile")
     .update({ ...agent, whatsapp: agent.whatsapp.replace(/\D/g, "") })
     .eq("id", 1);
-  if (agentError) throw agentError;
-
-  if (properties.length > 0) {
-    const { error } = await supabase.from("properties").upsert(properties.map(toRow));
-    if (error) throw error;
-  }
-
-  const keep = new Set(properties.map((p) => p.id));
-  const removed = state.properties.filter((p) => !keep.has(p.id)).map((p) => p.id);
-  if (removed.length > 0) {
-    const { error } = await supabase.from("properties").delete().in("id", removed);
-    if (error) throw error;
-  }
-
+  if (error) throw error;
   await loadSiteData();
+}
+
+// Novo imóvel entra no topo da lista (sort_order menor que todos)
+export function topSortOrder(): number {
+  return Math.min(0, ...state.allProperties.map((p) => p.sortOrder ?? 0)) - 1;
+}
+
+// Salva um imóvel por vez (admin) e atualiza o site sem recarregar tudo
+export async function saveProperty(property: Property): Promise<Property> {
+  const { data, error } = await supabase.from("properties").upsert(toRow(property)).select().single();
+  if (error) throw error;
+  const saved = fromRow(data as PropertyRow);
+  const exists = state.allProperties.some((p) => p.id === saved.id);
+  setState(
+    withProperties(
+      exists ? state.allProperties.map((p) => (p.id === saved.id ? saved : p)) : [saved, ...state.allProperties]
+    )
+  );
+  return saved;
+}
+
+export async function deleteProperty(id: string): Promise<void> {
+  const { error } = await supabase.from("properties").delete().eq("id", id);
+  if (error) throw error;
+  setState(withProperties(state.allProperties.filter((p) => p.id !== id)));
 }
